@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.3",
   "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe",
-  "sha256": "62c97c8c5fad8cda9bc57b3c0aefbf747555e47d7164b122260bebe9641580ec",
-  "size": 36947225,
-  "notes": "Overlay trasparente sopra il gioco e aggiornamento automatico con riavvio",
-  "published": "2026-11-21 14:21"
+  "sha256": "7fefcec572513f6a2bf7c0ec7eecb976c2d7ee5bf405a9c1433d8d90d1df322a",
+  "size": 36945429,
+  "notes": "Overlay automatico all'avvio di Aion 2",
+  "published": "2026-11-21 14:25"
 }

@@ -52,6 +52,7 @@ class MainWindow(QWidget):
         self._download_busy = False
         self._download_percent = -1
         self._download_result: tuple[Path, bool] | None = None
+        self._overlay_dismissed = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 14)
@@ -74,13 +75,14 @@ class MainWindow(QWidget):
         self.overlay = OverlayWindow()
         self.overlay.load_settings()
         self.overlay.open_requested.connect(self.bring_to_front)
-        self.overlay.hidden_by_user.connect(lambda: self.roster_page.set_overlay_checked(False))
+        self.overlay.hidden_by_user.connect(self._on_overlay_hidden)
         self.roster_page.overlay_toggled.connect(self.set_overlay_visible)
         self.hotkey = GlobalHotkey(self)
         if self.hotkey.register():
             self.hotkey.activated.connect(self.toggle_overlay)
 
         self.watcher.scan()
+        self.auto_show_overlay()
         self.roster_page.set_feed_hint(self.feed_hint())
 
         self.timer = QTimer(self)
@@ -147,6 +149,10 @@ class MainWindow(QWidget):
                 self.roster_page.set_update_text("Riprova aggiornamento")
 
     # ------------------------------------------------------------------ overlay
+    def _on_overlay_hidden(self) -> None:
+        self._overlay_dismissed = True
+        self.roster_page.set_overlay_checked(False)
+
     def set_overlay_visible(self, visible: bool) -> None:
         if visible:
             self.overlay.show()
@@ -154,7 +160,15 @@ class MainWindow(QWidget):
             self.overlay.set_snapshot(self.snapshot(), self.live)
         else:
             self.overlay.hide()
+            self._overlay_dismissed = True
         self.overlay.save_settings()
+
+    def auto_show_overlay(self) -> None:
+        """Show the overlay by itself as soon as Aion 2 is running."""
+        if not self.watcher.running or self._overlay_dismissed or self.overlay.isVisible():
+            return
+        self.roster_page.set_overlay_checked(True)
+        self.set_overlay_visible(True)
 
     def toggle_overlay(self) -> None:
         self.set_overlay_visible(not self.overlay.isVisible())
@@ -265,6 +279,7 @@ class MainWindow(QWidget):
         self._scan_ticks += 1
         if became_live or self._scan_ticks % 8 == 0:
             self.watcher.scan()
+            self.auto_show_overlay()
             if self.feed is None:
                 path = find_feed()
                 if path is not None:

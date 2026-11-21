@@ -86,8 +86,25 @@ def build_setup(icon: Path) -> int:
     return subprocess.call(command, cwd=ROOT)
 
 
+def clean_build_dirs() -> None:
+    """PyInstaller leaves locked files behind when a previous build was interrupted."""
+    import shutil
+    import time
+
+    for folder in (ROOT / "build",):
+        for _ in range(3):
+            try:
+                shutil.rmtree(folder)
+                break
+            except FileNotFoundError:
+                break
+            except OSError:
+                time.sleep(0.5)
+
+
 def main() -> int:
     icon = make_icon()
+    clean_build_dirs()
     code = build_app(icon)
     if code:
         return code
