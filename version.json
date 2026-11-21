@@ -1,8 +1,8 @@
 {
-  "version": "1.0.3",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe",
-  "sha256": "7fefcec572513f6a2bf7c0ec7eecb976c2d7ee5bf405a9c1433d8d90d1df322a",
-  "size": 36945429,
-  "notes": "Overlay automatico all'avvio di Aion 2",
-  "published": "2026-11-21 14:25"
+  "version": "1.0.4",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.4",
+  "sha256": "1b00d0599b0f7def0f8ca06a0fffa4aca1c08c1d491af81eda0af577cb4a6881",
+  "size": 36947686,
+  "notes": "Controllo aggiornamenti senza cache CDN",
+  "published": "2026-11-21 14:27"
 }

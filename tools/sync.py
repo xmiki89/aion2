@@ -57,7 +57,8 @@ def publish(version: str, notes: str) -> None:
         json.dumps(
             {
                 "version": version,
-                "url": f"{RAW_BASE}/update/Aion2DamageMeter.exe",
+                # versioned URL: the CDN cache key changes on every release
+                "url": f"{RAW_BASE}/update/Aion2DamageMeter.exe?v={version}",
                 "sha256": digest,
                 "size": PAYLOAD.stat().st_size,
                 "notes": notes,

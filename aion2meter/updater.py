@@ -18,6 +18,9 @@ from pathlib import Path
 from . import __version__
 
 REPO = "xmiki89/aion2"
+# the Contents API is not cached by the CDN, so a fresh release is seen immediately;
+# the raw URL stays as a fallback for networks that block api.github.com
+API_MANIFEST_URL = f"https://api.github.com/repos/{REPO}/contents/version.json"
 MANIFEST_URL = f"https://raw.githubusercontent.com/{REPO}/main/version.json"
 FALLBACK_ASSET = f"https://github.com/{REPO}/releases/latest/download/Aion2DamageMeter.exe"
 USER_AGENT = "Aion2DamageMeter"
@@ -51,12 +54,8 @@ def is_newer(remote: str, local: str) -> bool:
     return parse_version(remote) > parse_version(local)
 
 
-def fetch_manifest(url: str = MANIFEST_URL, timeout: float = 6.0) -> dict | None:
-    stamp = int(time.time())
-    request = urllib.request.Request(
-        f"{url}?v={stamp}",
-        headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache", "Pragma": "no-cache"},
-    )
+def _read_json(url: str, headers: dict[str, str], timeout: float) -> dict | None:
+    request = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = response.read(500_000).decode("utf-8", "ignore")
@@ -66,7 +65,28 @@ def fetch_manifest(url: str = MANIFEST_URL, timeout: float = 6.0) -> dict | None
     return data if isinstance(data, dict) else None
 
 
-def check(url: str = MANIFEST_URL) -> UpdateInfo | None:
+def fetch_manifest(url: str | None = None, timeout: float = 6.0) -> dict | None:
+    stamp = int(time.time())
+    if url:
+        candidates = [url]
+    else:
+        candidates = [API_MANIFEST_URL, MANIFEST_URL]
+    for candidate in candidates:
+        separator = "&" if "?" in candidate else "?"
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+        }
+        if "api.github.com" in candidate:
+            headers["Accept"] = "application/vnd.github.raw"
+        data = _read_json(f"{candidate}{separator}v={stamp}", headers, timeout)
+        if data is not None and data.get("version"):
+            return data
+    return None
+
+
+def check(url: str | None = None) -> UpdateInfo | None:
     data = fetch_manifest(url)
     if not data:
         return None
