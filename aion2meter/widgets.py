@@ -451,13 +451,21 @@ class RosterPage(QWidget):
         self.badge = QLabel("DEMO")
         self.badge.setObjectName("badgeDemo")
 
+        self.byline = QLabel("By Miki")
+        self.byline.setObjectName("byline")
+        badge_col = QVBoxLayout()
+        badge_col.setContentsMargins(0, 0, 0, 0)
+        badge_col.setSpacing(2)
+        badge_col.addWidget(self.byline)
+        badge_col.addWidget(self.badge)
+
         chip_row.addWidget(self.brawler_chip)
         chip_row.addWidget(self.merge_chip)
         chip_row.addWidget(self.overlay_chip)
         chip_row.addWidget(self.you_label)
         chip_row.addStretch(1)
         chip_row.addWidget(self.update_button)
-        chip_row.addWidget(self.badge)
+        chip_row.addLayout(badge_col)
         root.addLayout(chip_row)
 
         # --- rows

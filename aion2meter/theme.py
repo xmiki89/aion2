@@ -107,6 +107,12 @@ QLabel#emptyHint {{
     color: #6F727C;
     font-size: 10.5px;
 }}
+QLabel#byline {{
+    color: #8C8F99;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+}}
 QLabel#badgeDemo {{
     background: #2A2116;
     border: 1px solid #5B4526;

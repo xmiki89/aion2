@@ -1,8 +1,8 @@
 {
-  "version": "1.0.5",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.5",
-  "sha256": "a399c7db97ad9f6cc378c4de7722080f08f6fa1be882d3a95c3dd0df08f82548",
-  "size": 36947738,
-  "notes": "Aggiornamento automatico con retry e controllo periodico",
-  "published": "2026-11-26 15:15"
+  "version": "1.0.6",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.6",
+  "sha256": "16756fe84bb6eca82740ab39d17d5357a608ec6992a26001bcd87de60be10458",
+  "size": 36948080,
+  "notes": "Firma By Miki sopra il badge DEMO/LIVE",
+  "published": "2026-11-26 15:22"
 }
