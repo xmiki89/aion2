@@ -94,6 +94,12 @@ QLabel#youChip {{
     font-size: 11px;
     font-weight: 600;
 }}
+QLabel#partyLine {{
+    color: #9FA3AE;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 2px 0 2px;
+}}
 QLabel#emptyTitle {{
     color: #E9EAEF;
     font-size: 15px;

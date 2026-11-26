@@ -347,6 +347,7 @@ class RosterPage(QWidget):
     update_clicked = pyqtSignal()
     overlay_toggled = pyqtSignal(bool)
     self_pick = pyqtSignal()
+    startup_toggled = pyqtSignal(bool)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -449,6 +450,16 @@ class RosterPage(QWidget):
         self.update_button.setVisible(False)
         self.update_button.clicked.connect(self.update_clicked.emit)
 
+        self.startup_chip = QPushButton("Avvia con Windows")
+        self.startup_chip.setObjectName("chip")
+        self.startup_chip.setCheckable(True)
+        self.startup_chip.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.startup_chip.setToolTip(
+            "Avvia il meter all'accensione del PC: cosi' la cattura e' attiva prima del login "
+            "e i nomi dei giocatori vengono letti"
+        )
+        self.startup_chip.toggled.connect(self.startup_toggled.emit)
+
         self.self_button = QPushButton("Sono io")
         self.self_button.setObjectName("chip")
         self.self_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -472,10 +483,16 @@ class RosterPage(QWidget):
         chip_row.addWidget(self.overlay_chip)
         chip_row.addWidget(self.you_label)
         chip_row.addWidget(self.self_button)
+        chip_row.addWidget(self.startup_chip)
         chip_row.addStretch(1)
         chip_row.addWidget(self.update_button)
         chip_row.addLayout(badge_col)
         root.addLayout(chip_row)
+
+        self.party_label = QLabel("")
+        self.party_label.setObjectName("partyLine")
+        self.party_label.setVisible(False)
+        root.addWidget(self.party_label)
 
         # --- rows
         self.scroll = QScrollArea()
@@ -561,8 +578,23 @@ class RosterPage(QWidget):
     def set_you(self, text: str) -> None:
         self.you_label.setText(text)
 
+    def set_party(self, names: list[str]) -> None:
+        if not names:
+            self.party_label.setVisible(False)
+            return
+        self.party_label.setText("Gruppo: " + " · ".join(names))
+        self.party_label.setVisible(True)
+
     def set_self_pick_visible(self, visible: bool) -> None:
         self.self_button.setVisible(bool(visible))
+
+    def set_startup_checked(self, checked: bool) -> None:
+        self.startup_chip.blockSignals(True)
+        self.startup_chip.setChecked(bool(checked))
+        self.startup_chip.blockSignals(False)
+
+    def set_you_hint(self, text: str) -> None:
+        self.you_label.setToolTip(text)
 
     def set_overlay_checked(self, checked: bool) -> None:
         self.overlay_chip.setChecked(checked)

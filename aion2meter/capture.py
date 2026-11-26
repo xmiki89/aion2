@@ -850,19 +850,11 @@ class CaptureFeed:
         with self._lock:
             events = self.events
             self.events = []
-        events.extend(self._member_events())
         return events
 
-    def _member_events(self) -> list[dict[str, Any]]:
-        """Presenta in roster chi e' stato riconosciuto, anche senza danni."""
-        new: list[dict[str, Any]] = []
-        now = time.time()
-        for name in self.protocol.party_names:
-            if not name or name in self._announced:
-                continue
-            self._announced.add(name)
-            new.append({"type": "member", "src": name, "t": now})
-        return new
+    def party(self) -> list[str]:
+        """Nomi del gruppo cosi' come arrivano dal server."""
+        return sorted(name for name in self.protocol.party_names if name)
 
     def take_renames(self) -> list[tuple[str, str]]:
         renames = self._renames

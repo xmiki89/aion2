@@ -16,6 +16,8 @@ from .engine import MeterEngine, Snapshot
 from .hotkey import GlobalHotkey
 from .overlay import OverlayWindow
 from .capture import CaptureFeed, capture_available
+from .startup import is_enabled as is_startup_enabled
+from .startup import set_enabled as set_startup_enabled
 from .feeds import (
     CharacterDetector,
     DemoFeed,
@@ -84,6 +86,8 @@ class MainWindow(QWidget):
         self.detail_page.back_requested.connect(self.show_roster)
         self.roster_page.update_clicked.connect(self.install_update)
         self.roster_page.self_pick.connect(self.pick_self)
+        self.roster_page.startup_toggled.connect(self.set_startup)
+        self.roster_page.set_startup_checked(is_startup_enabled())
 
         self.overlay = OverlayWindow()
         self.overlay.load_settings()
@@ -436,6 +440,15 @@ class MainWindow(QWidget):
             self.roster_page.set_self_pick_visible(
                 self.live and self.capture.protocol.self_actor is None
             )
+            self.roster_page.set_party(self.capture.party())
+            if not self.capture.protocol.names and not self.capture.party():
+                self.roster_page.set_you_hint(
+                    "I nomi dei giocatori arrivano dal server solo al caricamento della zona. "
+                    "Tieni il meter aperto prima del login (o attiva 'Avvia con Windows') "
+                    "oppure cambia zona una volta: le righe 'Player N' diventano nomi."
+                )
+            else:
+                self.roster_page.set_you_hint("La tua riga nel meter")
 
         if self.watcher.running:
             parts = [f"Aion 2 rilevato · {self.watcher.exe} (PID {self.watcher.pid})"]
@@ -454,6 +467,13 @@ class MainWindow(QWidget):
             self.roster_page.set_status(
                 "Aion 2 non rilevato — in attesa dell'avvio del gioco", self.live
             )
+
+    def set_startup(self, enabled: bool) -> None:
+        """Avvio con Windows: la cattura parte prima del login e vede i nomi."""
+        if not set_startup_enabled(enabled):
+            self.roster_page.set_startup_checked(not enabled)
+            return
+        self.roster_page.set_startup_checked(enabled)
 
     def closeEvent(self, event) -> None:  # noqa: N802, ANN001
         if self.capture is not None:
