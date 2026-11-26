@@ -1,8 +1,8 @@
 {
-  "version": "1.0.11",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.11",
-  "sha256": "a35e66dde3ca896b7c62196437f06d70dd56684cca0e20759b5bb36288585d9e",
-  "size": 36977123,
-  "notes": "Se scrivi il tuo nome nel pulsante Sono io, la riga prende quel nome",
-  "published": "2026-11-26 17:11"
+  "version": "1.0.12",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.12",
+  "sha256": "e207269e17f9f11f82f2fbab34834977139f9628d76dfbbe36f97b34cc15263b",
+  "size": 36977631,
+  "notes": "Roster del gruppo: i nomi dei compagni compaiono appena entri nel dungeon",
+  "published": "2026-11-26 20:07"
 }

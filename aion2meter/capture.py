@@ -464,6 +464,7 @@ class Protocol:
         self.self_class: str | None = None
         self.self_name: str | None = None
         self.self_server: int | None = None
+        self.party_names: set[str] = set()
 
     # ------------------------------------------------------------- nomi
     def display(self, actor: int) -> str:
@@ -546,6 +547,23 @@ class Protocol:
                 self.self_name = raw.decode()
                 self.self_class = _CLASS_BY_ROSTER_CLASS.get(code)
                 self.self_server = server
+
+        # lista del gruppo nel dungeon: due o piu' nomi consecutivi <len><nome>
+        index = 0
+        run: list[str] = []
+        while index < len(payload) - 1:
+            length = payload[index]
+            raw = payload[index + 1 : index + 1 + length]
+            if _looks_like_name(raw):
+                run.append(raw.decode())
+                index += 1 + length
+                continue
+            if len(run) >= 2:
+                self.party_names.update(run)
+            run = []
+            index += 1
+        if len(run) >= 2:
+            self.party_names.update(run)
 
         # nome preceduto da E2/E0 07 e da un varint con l'actor
         index = 0
@@ -756,6 +774,14 @@ def _printable(raw: bytes) -> bool:
     return bool(raw) and all(32 <= byte < 127 for byte in raw)
 
 
+def _looks_like_name(raw: bytes) -> bool:
+    """Nome di giocatore: alfanumerico, almeno una lettera, 3-20 caratteri."""
+    if not 3 <= len(raw) <= 20 or not _printable(raw):
+        return False
+    text = raw.decode()
+    return text.isalnum() and any(ch.isalpha() for ch in text)
+
+
 def _varint_ending_at(data: bytes, end: int) -> int | None:
     for start in range(max(0, end - 5), end):
         head = read_varint(data, start)
@@ -785,6 +811,7 @@ class CaptureFeed:
         self._rename: tuple[str, str] | None = None
         self._labels: dict[int, str] = {}
         self._renames: list[tuple[str, str]] = []
+        self._announced: set[str] = set()
         self.known_name: str | None = None
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
@@ -823,7 +850,19 @@ class CaptureFeed:
         with self._lock:
             events = self.events
             self.events = []
+        events.extend(self._member_events())
         return events
+
+    def _member_events(self) -> list[dict[str, Any]]:
+        """Presenta in roster chi e' stato riconosciuto, anche senza danni."""
+        new: list[dict[str, Any]] = []
+        now = time.time()
+        for name in self.protocol.party_names:
+            if not name or name in self._announced:
+                continue
+            self._announced.add(name)
+            new.append({"type": "member", "src": name, "t": now})
+        return new
 
     def take_renames(self) -> list[tuple[str, str]]:
         renames = self._renames
@@ -840,6 +879,10 @@ class CaptureFeed:
             if actor in self.protocol.mobs or not self.protocol.actor_class(actor):
                 continue
             rows.append(self.protocol.names.get(actor) or f"Player {actor}")
+        # i membri del gruppo compaiono per nome anche prima di fare danni
+        for name in sorted(self.protocol.party_names):
+            if name not in rows:
+                rows.append(name)
         return rows
 
     def set_self_label(self, label: str) -> None:
