@@ -351,12 +351,14 @@ class MainWindow(QWidget):
         if not ok or not label:
             return
         chosen = label.strip()
+        real_name = not chosen.startswith("Player ")
         self.capture.set_self_label(chosen)
-        for old, new in self.capture.take_renames():
-            self.engine.rename(old, new)
-        if not chosen.startswith("Player "):
+        if real_name:
             # un nome vero resta valido anche alla prossima apertura
+            self.capture.set_known_name(chosen)
             write_session_file(chosen, self.capture.detected_class())
+        for old, new in self.capture.take_renames():
+            self.engine.rename(old, chosen if (real_name and new == "Tu") else new)
         self.refresh()
         self.update_status()
 
@@ -367,6 +369,9 @@ class MainWindow(QWidget):
         if self.watcher.running:
             if self.capture is None:
                 self.capture = CaptureFeed()
+                known = self.detector.character or read_session_file().get("character")
+                if known:
+                    self.capture.set_known_name(known)
                 self.capture.start()
             if self.detector.character:
                 self.capture.set_self_hint(self.detector.character)

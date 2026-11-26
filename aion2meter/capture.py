@@ -785,6 +785,7 @@ class CaptureFeed:
         self._rename: tuple[str, str] | None = None
         self._labels: dict[int, str] = {}
         self._renames: list[tuple[str, str]] = []
+        self.known_name: str | None = None
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.Lock()
@@ -896,6 +897,16 @@ class CaptureFeed:
 
     def set_self_hint(self, name: str | None) -> None:
         self.self_hint = name
+        if name:
+            self.set_known_name(name)
+
+    def set_known_name(self, name: str | None) -> None:
+        """Nome del personaggio scelto dal giocatore (o letto da session.json)."""
+        if not name:
+            return
+        self.known_name = name
+        if not self.protocol.self_name:
+            self.protocol.self_name = name
 
     # ------------------------------------------------------------------ cattura
     def _game_pid(self) -> int | None:
@@ -1024,7 +1035,7 @@ class CaptureFeed:
         name = self.protocol.names.get(actor)
         if actor == self_actor:
             kind = "damage"
-            source = name or "Tu"
+            source = name or self.known_name or "Tu"
             self._self_damage += amount
         elif target == self_actor:
             kind = "taken"
@@ -1066,6 +1077,19 @@ class CaptureFeed:
     def _self_actor(self) -> int | None:
         if self.protocol.self_actor is not None:
             return self.protocol.self_actor
+        if self.known_name and self.protocol.self_actor is None:
+            # un solo giocatore senza nome e in combattimento: sei tu
+            unnamed = [
+                actor
+                for actor in self._damage_by_actor
+                if actor not in self.protocol.mobs
+                and self.protocol.actor_class(actor)
+                and not self.protocol.names.get(actor)
+            ]
+            if len(unnamed) == 1:
+                self.protocol.self_actor = unnamed[0]
+                self._labels[unnamed[0]] = self.known_name
+                return unnamed[0]
         for name in (self.protocol.self_name, self.self_hint):
             if not name:
                 continue
@@ -1094,4 +1118,4 @@ class CaptureFeed:
         actor = self.protocol.self_actor
         if actor is not None and self.protocol.names.get(actor):
             return self.protocol.names[actor]
-        return self.protocol.self_name
+        return self.known_name or self.protocol.self_name

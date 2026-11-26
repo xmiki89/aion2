@@ -1,8 +1,8 @@
 {
-  "version": "1.0.9",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.9",
-  "sha256": "4e87fbe728d3f3540998d905a8b3544ab70fa4c3a8bb86a06df64d6fa3e3d7d9",
-  "size": 36973984,
-  "notes": "Il danno del giocatore non si perde piu: riga Tu + pulsante Sono io",
-  "published": "2026-11-26 17:02"
+  "version": "1.0.10",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.10",
+  "sha256": "1d8ad64283900ad775921cea1e60dbbf396d2ca8a45227a8e3faea7705862e76",
+  "size": 36977163,
+  "notes": "Nome del personaggio ricordato e usato per la riga Tu",
+  "published": "2026-11-26 17:08"
 }
