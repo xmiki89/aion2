@@ -501,9 +501,16 @@ class Protocol:
                         if 2 <= length <= 36 and _printable(raw):
                             actor_name = raw.decode()
                             self._note_name(actor, actor_name)
-                            # il proprio spawn porta server e classe dopo il nome
+                            # il proprio spawn (44/45 36 con marcatore 07) porta
+                            # server e classe subito dopo il nome
                             after = at + 2 + length
-                            if after + 6 <= len(payload):
+                            if (
+                                not is_mob
+                                and payload[at] == 0x07
+                                and length >= 3
+                                and actor_name.isalnum()
+                                and after + 6 <= len(payload)
+                            ):
                                 server = struct.unpack("<H", payload[after : after + 2])[0]
                                 code = struct.unpack("<I", payload[after + 2 : after + 6])[0]
                                 if 1000 <= server <= 3000 and 5 <= code <= 36:
@@ -776,6 +783,8 @@ class CaptureFeed:
         self._pending_since: dict[int, float] = {}
         self._self_label: str | None = None
         self._rename: tuple[str, str] | None = None
+        self._labels: dict[int, str] = {}
+        self._renames: list[tuple[str, str]] = []
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.Lock()
@@ -815,9 +824,46 @@ class CaptureFeed:
             self.events = []
         return events
 
-    def take_rename(self) -> tuple[str, str] | None:
-        rename, self._rename = self._rename, None
-        return rename
+    def take_renames(self) -> list[tuple[str, str]]:
+        renames = self._renames
+        self._renames = []
+        if self._rename is not None:
+            renames.append(self._rename)
+            self._rename = None
+        return renames
+
+    def candidates(self) -> list[str]:
+        """Righe che possono essere il giocatore (chi fa danni da giocatore)."""
+        rows: list[str] = []
+        for actor in sorted(self._damage_by_actor, key=lambda a: -self._damage_by_actor[a]):
+            if actor in self.protocol.mobs or not self.protocol.actor_class(actor):
+                continue
+            rows.append(self.protocol.names.get(actor) or f"Player {actor}")
+        return rows
+
+    def set_self_label(self, label: str) -> None:
+        """Dice al meter qual e' la riga del giocatore (nome o 'Player <id>')."""
+        if not label:
+            return
+        if label.startswith("Player "):
+            try:
+                actor = int(label.split(" ", 1)[1])
+            except ValueError:
+                actor = 0
+            if actor:
+                self.protocol.self_actor = actor
+                self.self_hint = None
+                old = self._labels.get(actor) or label
+                if old != "Tu":
+                    self._renames.append((old, "Tu"))
+                self._labels[actor] = "Tu"
+                self.protocol.self_name = self.protocol.names.get(actor)
+                return
+        self.set_self_hint(label)
+        for actor, name in self.protocol.names.items():
+            if name.lower() == label.lower():
+                self.protocol.self_actor = actor
+                break
 
     def _track_self_label(self) -> None:
         """Se il nome del personaggio arriva dopo i primi colpi, rinomina la riga."""
@@ -989,27 +1035,21 @@ class CaptureFeed:
             if 1_000_000 <= skill <= 9_999_999 or actor in self.protocol.mobs:
                 return None
             if not name:
-                # nome non ancora arrivato: aspetta lo spawn invece di mostrare un id
-                with self._lock:
-                    self._pending.setdefault(actor, []).append(
-                        {
-                            "type": "damage",
-                            "src": "",
-                            "class": self.protocol.actor_class(actor),
-                            "skill": label,
-                            "amount": amount,
-                            "crit": bool(hit.get("crit")),
-                            "multi": bool(hit.get("dot")),
-                            "t": hit["t"],
-                        }
-                    )
-                    self._pending_since.setdefault(actor, time.monotonic())
-                return None
+                # un mob non ha nome e non entra; un giocatore senza spawn si'
+                if not self.protocol.actor_class(actor):
+                    return None
+                source = f"Player {actor}"
+            else:
+                source = name
             kind = "damage"
-            source = name
         self._damage_by_actor[actor] = self._damage_by_actor.get(actor, 0) + (
             amount if kind == "damage" else 0
         )
+        previous = self._labels.get(actor)
+        if previous is not None and previous != source:
+            with self._lock:
+                self._renames.append((previous, source))
+        self._labels[actor] = source
         self.hits += 1
         return {
             "type": kind,
@@ -1039,16 +1079,6 @@ class CaptureFeed:
                 if name.lower() == hint.lower():
                     self.protocol.self_actor = actor
                     return actor
-        # ripiego: l'unico giocatore con nome noto (il proprio spawn arriva a
-        # ogni cambio di zona, quindi di solito e' gia' stato visto)
-        named_players = [
-            actor
-            for actor, name in self.protocol.names.items()
-            if name and actor not in self.protocol.mobs
-        ]
-        if len(named_players) == 1:
-            self.protocol.self_actor = named_players[0]
-            return named_players[0]
         return None
 
     # ------------------------------------------------------------------ classe

@@ -4,4 +4,6 @@ build/
 dist/
 *.log
 sniff_*/
+dev_live_shot.py
+live_roster.png
 .cloud-attachments/

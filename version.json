@@ -1,8 +1,8 @@
 {
-  "version": "1.0.8",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.8",
-  "sha256": "41f9bbe43bbf416580557c1148c3d8ead681715a908accb5c5b10cb47e62d591",
-  "size": 36973852,
-  "notes": "Nomi veri dai pacchetti di spawn, niente piu 'Player N'",
-  "published": "2026-11-26 16:50"
+  "version": "1.0.9",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.9",
+  "sha256": "4e87fbe728d3f3540998d905a8b3544ab70fa4c3a8bb86a06df64d6fa3e3d7d9",
+  "size": 36973984,
+  "notes": "Il danno del giocatore non si perde piu: riga Tu + pulsante Sono io",
+  "published": "2026-11-26 17:02"
 }

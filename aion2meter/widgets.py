@@ -346,6 +346,7 @@ class RosterPage(QWidget):
     brawler_changed = pyqtSignal(bool)
     update_clicked = pyqtSignal()
     overlay_toggled = pyqtSignal(bool)
+    self_pick = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -448,6 +449,13 @@ class RosterPage(QWidget):
         self.update_button.setVisible(False)
         self.update_button.clicked.connect(self.update_clicked.emit)
 
+        self.self_button = QPushButton("Sono io")
+        self.self_button.setObjectName("chip")
+        self.self_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.self_button.setToolTip("Scegli la tua riga: il meter conta i tuoi danni come 'Tu'")
+        self.self_button.setVisible(False)
+        self.self_button.clicked.connect(self.self_pick.emit)
+
         self.badge = QLabel("DEMO")
         self.badge.setObjectName("badgeDemo")
 
@@ -463,6 +471,7 @@ class RosterPage(QWidget):
         chip_row.addWidget(self.merge_chip)
         chip_row.addWidget(self.overlay_chip)
         chip_row.addWidget(self.you_label)
+        chip_row.addWidget(self.self_button)
         chip_row.addStretch(1)
         chip_row.addWidget(self.update_button)
         chip_row.addLayout(badge_col)
@@ -551,6 +560,9 @@ class RosterPage(QWidget):
     # -- rendering
     def set_you(self, text: str) -> None:
         self.you_label.setText(text)
+
+    def set_self_pick_visible(self, visible: bool) -> None:
+        self.self_button.setVisible(bool(visible))
 
     def set_overlay_checked(self, checked: bool) -> None:
         self.overlay_chip.setChecked(checked)

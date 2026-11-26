@@ -24,6 +24,7 @@ from .feeds import (
     candidate_feed_paths,
     find_feed,
     read_session_file,
+    write_session_file,
 )
 from .widgets import DetailPage, RosterPage
 
@@ -63,6 +64,7 @@ class MainWindow(QWidget):
         self._download_percent = -1
         self._download_result: tuple[Path, bool] | None = None
         self._overlay_dismissed = False
+        self._saved_self = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 14)
@@ -81,6 +83,7 @@ class MainWindow(QWidget):
         self.roster_page.brawler_changed.connect(self.set_include_brawler)
         self.detail_page.back_requested.connect(self.show_roster)
         self.roster_page.update_clicked.connect(self.install_update)
+        self.roster_page.self_pick.connect(self.pick_self)
 
         self.overlay = OverlayWindow()
         self.overlay.load_settings()
@@ -300,9 +303,8 @@ class MainWindow(QWidget):
                     self.engine.reset()
                 for event in capture_events:
                     self._apply(event)
-            rename = self.capture.take_rename()
-            if rename:
-                self.engine.rename(*rename)
+            for old, new in self.capture.take_renames():
+                self.engine.rename(old, new)
         if self.feed is not None:
             events = self.feed.poll()
             if events and not self.live:
@@ -330,6 +332,33 @@ class MainWindow(QWidget):
             self.update_status()
 
         self.refresh()
+
+    def pick_self(self) -> None:
+        """Dice al meter quale riga e' il giocatore (il suo danno finisce in 'Tu')."""
+        if self.capture is None:
+            return
+        from PyQt6.QtWidgets import QInputDialog
+
+        candidates = self.capture.candidates()
+        label, ok = QInputDialog.getItem(
+            self,
+            "Chi sei tu",
+            "Scegli la tua riga nel meter (o scrivi il tuo nome di gioco):",
+            candidates or ["Player 0"],
+            0,
+            True,
+        )
+        if not ok or not label:
+            return
+        chosen = label.strip()
+        self.capture.set_self_label(chosen)
+        for old, new in self.capture.take_renames():
+            self.engine.rename(old, new)
+        if not chosen.startswith("Player "):
+            # un nome vero resta valido anche alla prossima apertura
+            write_session_file(chosen, self.capture.detected_class())
+        self.refresh()
+        self.update_status()
 
     def _tick_capture(self) -> None:
         """Avvia la cattura quando il gioco gira, la ferma quando si chiude."""
@@ -381,6 +410,9 @@ class MainWindow(QWidget):
             if detected_name:
                 info["character"] = detected_name
                 self.engine.set_session(character=detected_name)
+                if not self._saved_self and detected_name.isalnum():
+                    self._saved_self = True
+                    write_session_file(detected_name, detected_class, info.get("server"))
 
         character = info.get("character")
         char_class = info.get("class")
@@ -394,6 +426,11 @@ class MainWindow(QWidget):
             self.roster_page.set_you("Tu: classe non rilevata")
         else:
             self.roster_page.set_you("Tu: in attesa")
+
+        if self.capture is not None:
+            self.roster_page.set_self_pick_visible(
+                self.live and self.capture.protocol.self_actor is None
+            )
 
         if self.watcher.running:
             parts = [f"Aion 2 rilevato · {self.watcher.exe} (PID {self.watcher.pid})"]

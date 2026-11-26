@@ -112,6 +112,25 @@ class LogFeed:
         return events
 
 
+def write_session_file(
+    character: str | None, cls: str | None = None, server: str | None = None
+) -> None:
+    """Ricorda il personaggio scelto, cosi' il meter lo riconosce alla riapertura."""
+    if not character:
+        return
+    data: dict[str, str] = {"character": character}
+    if cls:
+        data["class"] = cls
+    if server:
+        data["server"] = server
+    target = _local_appdata() / "Aion2DamageMeter" / "session.json"
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except OSError:
+        pass
+
+
 def read_session_file() -> dict[str, str]:
     for path in candidate_session_paths():
         try:
