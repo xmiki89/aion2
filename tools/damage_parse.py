@@ -250,7 +250,64 @@ def scan_from(data: bytes, start: int) -> tuple[int, int, list[dict]]:
         if payload[:2] == b"\x04\x38":
             damage_frames += 1
             hits.extend(parse_damage_payload(payload, 0.0))
+        elif payload[:2] == b"\x05\x38":
+            hits.extend(parse_dot_payload(payload, 0.0))
     return frames, damage_frames, hits
+
+
+def parse_dot_payload(payload: bytes, stamp: float) -> list[dict]:
+    """Record `05 38`: tick di danno nel tempo (DoT) o cura.
+
+    target varint, effetto (u8), actor varint, varint ignoto, skill u32/100,
+    importo varint. Effetti: 02/0A/06/0E danno, 01/09/0B cura.
+    """
+    offset = 2
+    target = read_varint(payload, offset)
+    if not target:
+        return []
+    target_value, width = target
+    offset += width
+    if offset >= len(payload):
+        return []
+    effect = payload[offset]
+    offset += 1
+    damage_effect = effect in (0x02, 0x0A, 0x06, 0x0E)
+    heal_effect = effect in (0x01, 0x09, 0x0B)
+    if not damage_effect and not heal_effect:
+        return []
+
+    actor = read_varint(payload, offset)
+    if not actor:
+        return []
+    actor_value, width = actor
+    offset += width
+    unknown = read_varint(payload, offset)
+    if not unknown:
+        return []
+    offset += unknown[1]
+    if offset + 4 > len(payload):
+        return []
+    skill = struct.unpack("<I", payload[offset : offset + 4])[0] // 100
+    offset += 4
+    amount = read_varint(payload, offset)
+    if not amount or not 0 < amount[0] <= 99_999_999:
+        return []
+    if damage_effect and actor_value == target_value:
+        return []
+    return [
+        {
+            "t": stamp,
+            "actor": actor_value,
+            "target": target_value,
+            "skill": skill,
+            "damage": amount[0] if damage_effect else 0,
+            "heal": amount[0] if heal_effect else 0,
+            "scalar": 0,
+            "crit": False,
+            "switch": 0,
+            "dot": True,
+        }
+    ]
 
 
 def analyse(path: pathlib.Path) -> list[dict]:
@@ -290,12 +347,15 @@ def main() -> int:
         print("\nNessun colpo: la cattura non contiene record di danno parsabili.")
         return 0
 
-    by_actor: dict[int, dict] = collections.defaultdict(lambda: {"dmg": 0, "hits": 0, "crits": 0, "skills": collections.Counter()})
+    by_actor: dict[int, dict] = collections.defaultdict(
+        lambda: {"dmg": 0, "hits": 0, "crits": 0, "dot": 0, "skills": collections.Counter()}
+    )
     for hit in hits:
         entry = by_actor[hit["actor"]]
         entry["dmg"] += hit["damage"]
         entry["hits"] += 1
         entry["crits"] += 1 if hit["crit"] else 0
+        entry["dot"] += hit["damage"] if hit.get("dot") else 0
         entry["skills"][hit["skill"]] += hit["damage"]
 
     total = sum(h["damage"] for h in hits)
@@ -305,7 +365,7 @@ def main() -> int:
         top_skill = entry["skills"].most_common(1)[0] if entry["skills"] else (0, 0)
         print(
             f"  actor {actor:>10}: {entry['dmg']:>9,} dmg in {entry['hits']:>4} colpi"
-            f" ({entry['crits']} crit) | skill {top_skill[0]}: {top_skill[1]:,}"
+            f" ({entry['crits']} crit, {entry['dot']:,} DoT) | skill {top_skill[0]}: {top_skill[1]:,}"
         )
     return 0
 
