@@ -1,8 +1,8 @@
 {
-  "version": "1.0.15",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.15",
-  "sha256": "762dc9f58a21b6ba961cf45df22b0c40dca38d3482cf2618393494b0c8926800",
-  "size": 36983779,
-  "notes": "Rileva l'elenco giocatori del server e mostra nomi in zona o gruppo",
-  "published": "2026-11-26 20:40"
+  "version": "1.0.16",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.16",
+  "sha256": "9f24986984c9eecf28d8bd849d8bc06c1934377d84ec942d53ba12dec8a5b492",
+  "size": 36984513,
+  "notes": "Party letto dai pacchetti e nomi assegnati alle righe senza nome",
+  "published": "2026-11-26 20:48"
 }

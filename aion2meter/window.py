@@ -256,6 +256,9 @@ class MainWindow(QWidget):
         me = self.capture.detected_name()
         if me:
             party.add(me)
+        if not any(member.name in party for member in snap.members):
+            # nessuna riga ha ancora il nome: mostro tutto invece di un roster vuoto
+            return snap
         return keep_only(snap, party)
 
     def set_party_only(self, enabled: bool) -> None:
@@ -458,10 +461,6 @@ class MainWindow(QWidget):
             party = self.capture.party()
             if party:
                 self.roster_page.set_party(party)
-            elif self.capture.players():
-                self.roster_page.set_party_note(
-                    "In zona: " + " · ".join(self.capture.players())
-                )
             elif self.party_only:
                 self.roster_page.set_party_note(
                     "Solo gruppo: lista non ancora ricevuta dal server "

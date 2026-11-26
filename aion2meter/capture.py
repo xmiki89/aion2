@@ -828,7 +828,6 @@ class CaptureFeed:
         self._rename: tuple[str, str] | None = None
         self._labels: dict[int, str] = {}
         self._renames: list[tuple[str, str]] = []
-        self._announced: set[str] = set()
         self.known_name: str | None = None
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
@@ -867,16 +866,41 @@ class CaptureFeed:
         with self._lock:
             events = self.events
             self.events = []
+        self._assign_party_names()
         return events
 
-    def party(self) -> list[str]:
-        """Nomi del gruppo cosi' come arrivano dal server."""
-        return sorted(name for name in self.protocol.party_names if name)
+    def _assign_party_names(self) -> None:
+        """Se resta un solo giocatore senza nome e un solo nome del party, li unisce."""
+        party = set(self.protocol.party_names) | set(self.protocol.seen_players)
+        if not party:
+            return
+        unnamed = [
+            actor
+            for actor in self._damage_by_actor
+            if actor not in self.protocol.mobs
+            and self.protocol.actor_class(actor)
+            and not self.protocol.names.get(actor)
+        ]
+        known = set(self.protocol.names.values())
+        if self.known_name:
+            known.add(self.known_name)
+        free = party - known
+        if len(unnamed) != len(free):
+            return
+        for actor, name in zip(sorted(unnamed), sorted(free)):
+            self.protocol.names[actor] = name
+            old = self._labels.get(actor) or f"Player {actor}"
+            if old != name:
+                self._renames.append((old, name))
+            self._labels[actor] = name
 
-    def players(self) -> list[str]:
-        """Giocatori elencati dal server (party/lista zona), con nome."""
+    def party(self) -> list[str]:
+        """Nomi del party: elenco giocatori (1e) + nomi consecutivi, dal server."""
         names = set(self.protocol.seen_players) | set(self.protocol.party_names)
         return sorted(name for name in names if name)
+
+    def players(self) -> list[str]:
+        return self.party()
 
     def take_renames(self) -> list[tuple[str, str]]:
         renames = self._renames
