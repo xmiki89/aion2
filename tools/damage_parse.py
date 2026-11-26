@@ -240,18 +240,42 @@ def parse_damage_payload(payload: bytes, stamp: float) -> list[dict]:
     return hits
 
 
+def scan_from(data: bytes, start: int) -> tuple[int, int, list[dict]]:
+    """Cammina il flusso da `start`; ritorna (frame, frame di danno, colpi)."""
+    frames = 0
+    damage_frames = 0
+    hits: list[dict] = []
+    for payload in walk_frames(data[start:]):
+        frames += 1
+        if payload[:2] == b"\x04\x38":
+            damage_frames += 1
+            hits.extend(parse_damage_payload(payload, 0.0))
+    return frames, damage_frames, hits
+
+
 def analyse(path: pathlib.Path) -> list[dict]:
+    """Analizza i flussi server->client, riallineandosi se il flusso parte a metà
+    pacchetto (una cattura comincia sempre dove capita)."""
     hits: list[dict] = []
     for flow in sorted(path.glob("flow_*servertoclient.bin")):
         data = flow.read_bytes()
-        frames = 0
-        damage_frames = 0
-        for payload in walk_frames(data):
-            frames += 1
-            if payload[:2] == b"\x04\x38":
-                damage_frames += 1
-                hits.extend(parse_damage_payload(payload, 0.0))
-        print(f"{flow.name}: {len(data):,} B -> {frames} frame, {damage_frames} di danno, {len(hits)} colpi cumulati")
+        frames, damage_frames, flow_hits = scan_from(data, 0)
+        start_used = 0
+        if frames < 20 and len(data) > 64:
+            best = (frames, damage_frames, flow_hits)
+            for start in range(1, min(512, len(data) - 16)):
+                candidate = scan_from(data, start)
+                if candidate[0] > best[0]:
+                    best = candidate
+                    start_used = start
+            frames, damage_frames, flow_hits = best
+        if start_used:
+            print(f"{flow.name}: riallineato a +{start_used} byte")
+        print(
+            f"{flow.name}: {len(data):,} B -> {frames} frame, {damage_frames} di danno, "
+            f"{len(flow_hits)} colpi"
+        )
+        hits.extend(flow_hits)
     return hits
 
 
