@@ -300,6 +300,9 @@ class MainWindow(QWidget):
                     self.engine.reset()
                 for event in capture_events:
                     self._apply(event)
+            rename = self.capture.take_rename()
+            if rename:
+                self.engine.rename(*rename)
         if self.feed is not None:
             events = self.feed.poll()
             if events and not self.live:

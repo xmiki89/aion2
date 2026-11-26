@@ -1,8 +1,8 @@
 {
-  "version": "1.0.7",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.7",
-  "sha256": "eed0a84c79180a2c31f545fb8d65a4b69cca750c10d13aa564d58568cafacf76",
-  "size": 36971711,
-  "notes": "Il meter conta i danni veri: cattura pacchetti Npcap dentro l'app",
-  "published": "2026-11-26 16:39"
+  "version": "1.0.8",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.8",
+  "sha256": "41f9bbe43bbf416580557c1148c3d8ead681715a908accb5c5b10cb47e62d591",
+  "size": 36973852,
+  "notes": "Nomi veri dai pacchetti di spawn, niente piu 'Player N'",
+  "published": "2026-11-26 16:50"
 }

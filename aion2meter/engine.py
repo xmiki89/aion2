@@ -142,6 +142,34 @@ class MeterEngine:
         if joined:
             meta["joined"] = True
 
+    def rename(self, old: str, new: str) -> None:
+        """Sposta un attore su un nome arrivato dopo (spawn o record personaggio)."""
+        if not old or not new or old == new:
+            return
+        meta = self.members.pop(old, None)
+        if meta is not None:
+            self.members.setdefault(new, meta)
+        bucket = self.buckets.pop(old, None)
+        if bucket is None:
+            return
+        target = self.buckets.get(new)
+        if target is None:
+            self.buckets[new] = bucket
+            return
+        target.damage += bucket.damage
+        target.healing += bucket.healing
+        target.taken += bucket.taken
+        target.hits += bucket.hits
+        target.crit += bucket.crit
+        target.double += bucket.double
+        target.multi += bucket.multi
+        target.back += bucket.back
+        for kind, skills in bucket.skills.items():
+            for skill, values in skills.items():
+                acc = target.skills[kind].setdefault(skill, [0, 0, 0, 0])
+                for index in range(4):
+                    acc[index] += values[index]
+
     def drop(self, name: str) -> None:
         """Remove a member that left the party / dungeon."""
         self.buckets.pop(name, None)

@@ -484,20 +484,33 @@ class Protocol:
         self.names.setdefault(actor, clean.strip())
 
     def _scan_names(self, payload: bytes) -> None:
-        # spawn con nome: <45 36> <actor varint> <mask u32> <mask2> <len> <nome>
-        for opcode, is_player in ((b"\x45\x36", True), (b"\x44\x36", True)):
+        # spawn: <40|41|44|45 36> <actor varint> <mask u32> <mask2> <len> <nome>
+        for opcode in (b"\x45\x36", b"\x44\x36", b"\x41\x36", b"\x40\x36"):
+            is_mob = opcode in (b"\x41\x36", b"\x40\x36")
             start = payload.find(opcode)
             while start != -1:
                 head = read_varint(payload, start + 2)
                 if head and 100 <= head[0] <= 9_999_999:
                     actor, width = head
+                    if is_mob:
+                        self.mobs.add(actor)
                     at = start + 2 + width + 4
-                    if at + 1 < len(payload) and is_player:
-                        mask2 = payload[at]
+                    if at + 1 < len(payload) and payload[at] & 0x01:
                         length = payload[at + 1]
                         raw = payload[at + 2 : at + 2 + length]
-                        if mask2 & 0x01 and 2 <= length <= 36 and _printable(raw):
-                            self._note_name(actor, raw.decode())
+                        if 2 <= length <= 36 and _printable(raw):
+                            actor_name = raw.decode()
+                            self._note_name(actor, actor_name)
+                            # il proprio spawn porta server e classe dopo il nome
+                            after = at + 2 + length
+                            if after + 6 <= len(payload):
+                                server = struct.unpack("<H", payload[after : after + 2])[0]
+                                code = struct.unpack("<I", payload[after + 2 : after + 6])[0]
+                                if 1000 <= server <= 3000 and 5 <= code <= 36:
+                                    self.self_name = actor_name
+                                    self.self_server = server
+                                    self.self_class = _CLASS_BY_ROSTER_CLASS.get(code)
+                                    self.self_actor = actor
                 start = payload.find(opcode, start + 1)
 
         # spawn di mob / evocazioni: segna l'attore come non giocatore
@@ -759,6 +772,10 @@ class CaptureFeed:
         self.paused = False
         self._self_damage = 0
         self._damage_by_actor: dict[int, int] = {}
+        self._pending: dict[int, list[dict[str, Any]]] = {}
+        self._pending_since: dict[int, float] = {}
+        self._self_label: str | None = None
+        self._rename: tuple[str, str] | None = None
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.Lock()
@@ -791,10 +808,45 @@ class CaptureFeed:
         self._thread = None
 
     def poll(self) -> list[dict[str, Any]]:
+        self._flush_pending()
+        self._track_self_label()
         with self._lock:
             events = self.events
             self.events = []
         return events
+
+    def take_rename(self) -> tuple[str, str] | None:
+        rename, self._rename = self._rename, None
+        return rename
+
+    def _track_self_label(self) -> None:
+        """Se il nome del personaggio arriva dopo i primi colpi, rinomina la riga."""
+        if self.protocol.self_actor is None:
+            return
+        label = self.protocol.names.get(self.protocol.self_actor) or "Tu"
+        if self._self_label is None:
+            self._self_label = label
+        elif label != self._self_label:
+            self._rename = (self._self_label, label)
+            self._self_label = label
+
+    def _flush_pending(self) -> None:
+        """Colpi in attesa del nome: appena lo spawn arriva, entrano con il nome."""
+        now = time.monotonic()
+        with self._lock:
+            for actor, items in list(self._pending.items()):
+                name = self.protocol.names.get(actor)
+                if name:
+                    for event in items:
+                        event["src"] = name
+                        event["class"] = self.protocol.actor_class(actor)
+                        self.events.append(event)
+                    self._pending.pop(actor, None)
+                    self._pending_since.pop(actor, None)
+                elif now - self._pending_since.get(actor, now) > 45:
+                    # mai nominato: non e' un giocatore, non mostrarlo
+                    self._pending.pop(actor, None)
+                    self._pending_since.pop(actor, None)
 
     def set_self_hint(self, name: str | None) -> None:
         self.self_hint = name
@@ -923,19 +975,38 @@ class CaptureFeed:
         if amount <= 0:
             return None
         self_actor = self._self_actor()
+        name = self.protocol.names.get(actor)
         if actor == self_actor:
             kind = "damage"
-            source = self.protocol.names.get(actor) or "Tu"
+            source = name or "Tu"
             self._self_damage += amount
         elif target == self_actor:
             kind = "taken"
-            source = self.protocol.display(actor)
+            mob = actor in self.protocol.mobs or 1_000_000 <= skill <= 9_999_999
+            source = name or ("Mob" if mob else f"Player {actor}")
         else:
             # un mob che colpisce altri non entra nel meter
             if 1_000_000 <= skill <= 9_999_999 or actor in self.protocol.mobs:
                 return None
+            if not name:
+                # nome non ancora arrivato: aspetta lo spawn invece di mostrare un id
+                with self._lock:
+                    self._pending.setdefault(actor, []).append(
+                        {
+                            "type": "damage",
+                            "src": "",
+                            "class": self.protocol.actor_class(actor),
+                            "skill": label,
+                            "amount": amount,
+                            "crit": bool(hit.get("crit")),
+                            "multi": bool(hit.get("dot")),
+                            "t": hit["t"],
+                        }
+                    )
+                    self._pending_since.setdefault(actor, time.monotonic())
+                return None
             kind = "damage"
-            source = self.protocol.display(actor)
+            source = name
         self._damage_by_actor[actor] = self._damage_by_actor.get(actor, 0) + (
             amount if kind == "damage" else 0
         )
