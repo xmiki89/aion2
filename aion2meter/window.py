@@ -265,9 +265,8 @@ class MainWindow(QWidget):
         me = self.capture.detected_name()
         if me:
             party.add(me)
-        # resta visibile anche chi ha danni ma non ha ancora il nome (compagno non mappato)
-        keep = party | {member.name for member in snap.members if member.name.startswith("Player ")}
-        return keep_only(snap, keep)
+        # solo il party: niente righe "Player N" ne' giocatori fuori dal gruppo
+        return keep_only(snap, party)
 
     def set_party_only(self, enabled: bool) -> None:
         self.party_only = bool(enabled)

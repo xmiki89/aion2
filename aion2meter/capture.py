@@ -883,7 +883,8 @@ class CaptureFeed:
 
     def _assign_party_names(self) -> None:
         """Se resta un solo giocatore senza nome e un solo nome del party, li unisce."""
-        party = set(self.protocol.party_names) | set(self.protocol.seen_players)
+        panel = self.panel_names()
+        party = set(self.protocol.party_names) | set(self.protocol.seen_players) | set(panel)
         # un nome assegnato che non e' piu' nel party torna "Player N"
         for actor, name in list(self._assigned.items()):
             if party and name in party:
@@ -911,6 +912,7 @@ class CaptureFeed:
             return
         slots = self.protocol.party_slots
         ordered = [slots[slot] for slot in sorted(slots) if slots[slot] in free]
+        ordered += [name for name in panel if name in free and name not in ordered]
         ordered += sorted(free - set(ordered))
         for actor, name in zip(sorted(unnamed), ordered):
             self.protocol.names[actor] = name
@@ -929,7 +931,8 @@ class CaptureFeed:
                 self._panel_hits.pop(name, None)
 
     def panel_names(self) -> list[str]:
-        return sorted(name for name, hits in self._panel_hits.items() if hits >= 2)
+        """Nomi letti dal pannello, nell'ordine del pannello (dall'alto in basso)."""
+        return [name for name, hits in self._panel_hits.items() if hits >= 2]
 
     def party(self) -> list[str]:
         """Nomi del party: pannello di gioco + elenco dal server."""
