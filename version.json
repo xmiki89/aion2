@@ -1,8 +1,8 @@
 {
-  "version": "1.0.18",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.18",
-  "sha256": "378f743c5162e5613888fd52f7d98a04874664c96b89b0ed19f2ace47866cb85",
-  "size": 36984692,
-  "notes": "Nomi letti anche dal flusso grezzo e caratteri speciali ammessi",
-  "published": "2026-11-26 21:12"
+  "version": "1.0.19",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.19",
+  "sha256": "77ff890f6b5f2f852069e64ad93c9f8bda768e1a320f1549ec047e6a806e5df9",
+  "size": 36985333,
+  "notes": "Controllo periodico del party: nomi riassegnati alle righe in ordine di slot",
+  "published": "2026-11-26 21:26"
 }

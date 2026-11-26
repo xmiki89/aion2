@@ -466,6 +466,7 @@ class Protocol:
         self.self_server: int | None = None
         self.party_names: set[str] = set()
         self.seen_players: dict[str, int] = {}
+        self.party_slots: dict[int, str] = {}
 
     # ------------------------------------------------------------- nomi
     def display(self, actor: int) -> str:
@@ -563,7 +564,9 @@ class Protocol:
             raw = payload[index + 11 : index + 11 + length]
             if not _looks_like_name(raw):
                 continue
-            self.seen_players[raw.decode()] = uid
+            name = raw.decode()
+            self.seen_players[name] = uid
+            self.party_slots[slot] = name
 
         # lista del gruppo nel dungeon: due o piu' nomi consecutivi <len><nome>
         index = 0
@@ -836,6 +839,7 @@ class CaptureFeed:
         self._labels: dict[int, str] = {}
         self._renames: list[tuple[str, str]] = []
         self.known_name: str | None = None
+        self._assigned: dict[int, str] = {}
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.Lock()
@@ -879,6 +883,16 @@ class CaptureFeed:
     def _assign_party_names(self) -> None:
         """Se resta un solo giocatore senza nome e un solo nome del party, li unisce."""
         party = set(self.protocol.party_names) | set(self.protocol.seen_players)
+        # un nome assegnato che non e' piu' nel party torna "Player N"
+        for actor, name in list(self._assigned.items()):
+            if party and name in party:
+                continue
+            self._assigned.pop(actor, None)
+            if self.protocol.names.get(actor) == name:
+                self.protocol.names.pop(actor, None)
+                back = f"Player {actor}"
+                self._labels[actor] = back
+                self._renames.append((name, back))
         if not party:
             return
         unnamed = [
@@ -892,10 +906,14 @@ class CaptureFeed:
         if self.known_name:
             known.add(self.known_name)
         free = party - known
-        if len(unnamed) != len(free):
+        if not free or len(unnamed) != len(free):
             return
-        for actor, name in zip(sorted(unnamed), sorted(free)):
+        slots = self.protocol.party_slots
+        ordered = [slots[slot] for slot in sorted(slots) if slots[slot] in free]
+        ordered += sorted(free - set(ordered))
+        for actor, name in zip(sorted(unnamed), ordered):
             self.protocol.names[actor] = name
+            self._assigned[actor] = name
             old = self._labels.get(actor) or f"Player {actor}"
             if old != name:
                 self._renames.append((old, name))
