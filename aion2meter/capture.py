@@ -792,11 +792,18 @@ def _printable(raw: bytes) -> bool:
 
 
 def _looks_like_name(raw: bytes) -> bool:
-    """Nome di giocatore: alfanumerico, almeno una lettera, 3-20 caratteri."""
-    if not 3 <= len(raw) <= 20 or not _printable(raw):
+    """Nome di giocatore: lettere/cifre piu' - _ . spazio, 2-24 caratteri."""
+    if not 2 <= len(raw) <= 24:
         return False
-    text = raw.decode()
-    return text.isalnum() and any(ch.isalpha() for ch in text)
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    if any(ord(ch) < 32 for ch in text):
+        return False
+    if not any(ch.isalpha() for ch in text):
+        return False
+    return all(ch.isalnum() or ch in " -_.[]" for ch in text)
 
 
 def _varint_ending_at(data: bytes, end: int) -> int | None:
@@ -1091,6 +1098,8 @@ class CaptureFeed:
                     walker = StreamWalker()
                     self._walker[key] = walker
                 self._last_seen[key] = time.monotonic()
+                # scan del flusso grezzo: recupera i nomi anche quando il framing salta un frame
+                self.protocol._scan_names(payload)
                 for frame in walker.feed(payload):
                     now = time.monotonic()
                     for hit in self.protocol.consume(frame, now):

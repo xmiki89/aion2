@@ -1,8 +1,8 @@
 {
-  "version": "1.0.17",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.17",
-  "sha256": "de868dae208fbdef627abacbe9f7f0996abe466502c3c42d41b2b9a722a9bf37",
-  "size": 36984457,
-  "notes": "I nomi del party compaiono nel roster a sinistra",
-  "published": "2026-11-26 21:01"
+  "version": "1.0.18",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.18",
+  "sha256": "378f743c5162e5613888fd52f7d98a04874664c96b89b0ed19f2ace47866cb85",
+  "size": 36984692,
+  "notes": "Nomi letti anche dal flusso grezzo e caratteri speciali ammessi",
+  "published": "2026-11-26 21:12"
 }
