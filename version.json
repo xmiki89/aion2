@@ -1,8 +1,8 @@
 {
-  "version": "1.0.23",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.23",
-  "sha256": "4fc7fcc851bc5ccdf16df0c13a67a122f2003f282d5bb5b811867373d08b2bdf",
-  "size": 36991283,
-  "notes": "Lettura nomi solo dal pannello a sinistra, nomi spazzatura scartati",
-  "published": "2026-11-26 22:14"
+  "version": "1.0.24",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.24",
+  "sha256": "0ccbb29280e22fa78d375c76d7700c7c5f6013c0ba09e3a9ee23a0fbb171a702",
+  "size": 36991519,
+  "notes": "Nel meter solo i nomi letti dal pannello del party",
+  "published": "2026-11-26 22:20"
 }

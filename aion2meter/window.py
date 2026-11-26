@@ -266,8 +266,12 @@ class MainWindow(QWidget):
         me = self.capture.detected_name()
         if me:
             party.add(me)
-        # solo il party: niente righe "Player N" ne' giocatori fuori dal gruppo
-        return keep_only(snap, party)
+        # solo il party: nessun nome di altri giocatori. Restano visibili le righe
+        # senza nome ("Player N") per non perdere i loro danni
+        keep = party | {
+            member.name for member in snap.members if member.name.startswith("Player ")
+        }
+        return keep_only(snap, keep)
 
     def set_party_only(self, enabled: bool) -> None:
         self.party_only = bool(enabled)

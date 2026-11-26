@@ -892,7 +892,7 @@ class CaptureFeed:
     def _assign_party_names(self) -> None:
         """Se resta un solo giocatore senza nome e un solo nome del party, li unisce."""
         panel = self.panel_names()
-        party = set(self.protocol.party_names) | set(self.protocol.seen_players) | set(panel)
+        party = set(panel)
         # un nome assegnato che non e' piu' nel party torna "Player N"
         for actor, name in list(self._assigned.items()):
             if party and name in party:
@@ -944,12 +944,8 @@ class CaptureFeed:
 
     def party(self) -> list[str]:
         """Nomi del party: pannello di gioco + elenco dal server."""
-        panel = self.panel_names()
-        if panel:
-            # il pannello di gioco e' l'unica fonte: solo i membri del party
-            return panel
-        names = set(self.protocol.seen_players) | set(self.protocol.party_names)
-        return sorted(name for name in names if name)
+        # unica fonte dei nomi: il pannello del party. Mai nomi di altri giocatori
+        return self.panel_names()
 
     def players(self) -> list[str]:
         return self.party()
