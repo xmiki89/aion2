@@ -806,7 +806,15 @@ def _looks_like_name(raw: bytes) -> bool:
         return False
     if not any(ch.isalpha() for ch in text):
         return False
-    return all(ch.isalnum() or ch in " -_.[]" for ch in text)
+    if not all(ch.isalnum() or ch in " -_.[]" for ch in text):
+        return False
+    # scarta i nomi lunghi tutti maiuscoli senza cifre: sono byte di servizio
+    if len(text) >= 4 and text.isupper() and not any(ch.isdigit() for ch in text):
+        return False
+    # niente nomi di 2 caratteri in minuscolo o misti cortissimi
+    if len(text) < 3 and text.islower():
+        return False
+    return True
 
 
 def _varint_ending_at(data: bytes, end: int) -> int | None:

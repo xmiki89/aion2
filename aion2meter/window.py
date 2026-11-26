@@ -16,6 +16,7 @@ from .engine import MeterEngine, Snapshot, keep_only, with_party_rows
 from .hotkey import GlobalHotkey
 from .overlay import OverlayWindow
 from .capture import CaptureFeed, capture_available
+from . import screen as screen_mod
 from .screen import scan_names, temp_png
 from .startup import is_enabled as is_startup_enabled
 from .startup import set_enabled as set_startup_enabled
@@ -509,7 +510,18 @@ class MainWindow(QWidget):
             return
         path = temp_png()
         shot = self._screen.grabWindow(0)
-        if shot.isNull() or not shot.save(str(path), "PNG"):
+        if shot.isNull():
+            return
+        # solo il lato sinistro: li' c'e' il pannello del party
+        width = shot.width()
+        height = shot.height()
+        panel = shot.copy(
+            int(width * screen_mod.REGION_LEFT),
+            int(height * screen_mod.REGION_TOP),
+            int(width * screen_mod.REGION_WIDTH),
+            int(height * screen_mod.REGION_HEIGHT),
+        )
+        if not panel.save(str(path), "PNG"):
             return
         self._panel_busy = True
 

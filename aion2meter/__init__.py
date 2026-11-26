@@ -1,3 +1,3 @@
 """Aion 2 Damage Meter."""
 
-__version__ = "1.0.22"
+__version__ = "1.0.23"

@@ -1,8 +1,8 @@
 {
-  "version": "1.0.22",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.22",
-  "sha256": "e0d91fe3af865c9b23f1e28e5dfe6d0e88bd1d9340545c01bb1d1b8c754923ea",
-  "size": 36990403,
-  "notes": "Meter solo party: totale e DPS calcolati sui membri del gruppo",
-  "published": "2026-11-26 21:56"
+  "version": "1.0.23",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.23",
+  "sha256": "4fc7fcc851bc5ccdf16df0c13a67a122f2003f282d5bb5b811867373d08b2bdf",
+  "size": 36991283,
+  "notes": "Lettura nomi solo dal pannello a sinistra, nomi spazzatura scartati",
+  "published": "2026-11-26 22:14"
 }

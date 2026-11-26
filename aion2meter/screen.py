@@ -120,6 +120,8 @@ _ROW_PREFIX = re.compile(
 _ROW_GUILD = re.compile(
     r"^(?P<name>[A-Za-z\u00c0-\u024f][\w\-]{2,15})\s*\(\s*[A-Za-z\u00c0-\u024f]"
 )
+# nome scritto da solo sopra la barra vita (client cinese/giapponese/coreano)
+_ROW_CJK = re.compile(r"^[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]{2,12}$")
 
 
 def names_from_lines(lines: list[str]) -> list[str]:
@@ -128,6 +130,10 @@ def names_from_lines(lines: list[str]) -> list[str]:
     for line in lines:
         text = line.strip()
         if not text or text.startswith("[") or "player" in text.lower():
+            continue
+        if _ROW_CJK.match(text):
+            if text not in names:
+                names.append(text)
             continue
         row = _ROW_PREFIX.match(text) or _ROW_GUILD.match(text)
         if row is None:
@@ -146,9 +152,37 @@ def read_party_names(png_path: Path) -> list[str]:
     return names_from_lines(ocr_lines(png_path))
 
 
+# il pannello del party sta sul lato sinistro dello schermo
+REGION_LEFT = 0.00
+REGION_TOP = 0.06
+REGION_WIDTH = 0.36
+REGION_HEIGHT = 0.72
+
+
 def scan_names(png_path: Path) -> list[str]:
     """OCR + estrazione, usato dal timer periodico dell'app."""
     return names_from_lines(ocr_lines(png_path))
+
+
+def has_cjk_ocr() -> bool:
+    """True se Windows ha il pacchetto OCR per cinese/giapponese/coreano."""
+    script = (
+        "Add-Type -AssemblyName System.Runtime.WindowsRuntime\n"
+        "$null=[Windows.Media.Ocr.OcrEngine, Windows.Media.Ocr, ContentType=WindowsRuntime]\n"
+        "[Windows.Media.Ocr.OcrEngine]::AvailableRecognizerLanguages"
+        " | ForEach-Object { $_.LanguageTag }\n"
+    )
+    encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded],
+            capture_output=True,
+            timeout=20,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        ).stdout.decode("utf-8", "replace")
+    except Exception:
+        return False
+    return any(tag.lower().startswith(("zh", "ja", "ko")) for tag in out.split())
 
 
 def temp_png() -> Path:
