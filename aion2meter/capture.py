@@ -864,7 +864,22 @@ class CaptureFeed:
         for actor, name in self.protocol.names.items():
             if name.lower() == label.lower():
                 self.protocol.self_actor = actor
-                break
+                return
+        # nome scritto a mano: aggancialo al giocatore piu' attivo senza nome
+        candidates = [
+            actor
+            for actor in self._damage_by_actor
+            if actor not in self.protocol.mobs
+            and self.protocol.actor_class(actor)
+            and not self.protocol.names.get(actor)
+        ]
+        if candidates:
+            actor = max(candidates, key=lambda item: self._damage_by_actor[item])
+            self.protocol.self_actor = actor
+            old = self._labels.get(actor) or f"Player {actor}"
+            if old != label:
+                self._renames.append((old, label))
+            self._labels[actor] = label
 
     def _track_self_label(self) -> None:
         """Se il nome del personaggio arriva dopo i primi colpi, rinomina la riga."""
