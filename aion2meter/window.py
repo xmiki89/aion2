@@ -12,7 +12,7 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QStackedWidget, QVBoxLayout, QWidget
 
 from . import __version__, theme, updater
-from .engine import MeterEngine, Snapshot
+from .engine import MeterEngine, Snapshot, keep_only
 from .hotkey import GlobalHotkey
 from .overlay import OverlayWindow
 from .capture import CaptureFeed, capture_available
@@ -67,6 +67,7 @@ class MainWindow(QWidget):
         self._download_result: tuple[Path, bool] | None = None
         self._overlay_dismissed = False
         self._saved_self = False
+        self.party_only = True
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 14)
@@ -87,6 +88,7 @@ class MainWindow(QWidget):
         self.roster_page.update_clicked.connect(self.install_update)
         self.roster_page.self_pick.connect(self.pick_self)
         self.roster_page.startup_toggled.connect(self.set_startup)
+        self.roster_page.party_only_changed.connect(self.set_party_only)
         self.roster_page.set_startup_checked(is_startup_enabled())
 
         self.overlay = OverlayWindow()
@@ -245,7 +247,20 @@ class MainWindow(QWidget):
 
     # ------------------------------------------------------------------- feeds
     def snapshot(self) -> Snapshot:
-        return self.engine.snapshot(self.tab, self.merge_pets, self.include_brawler)
+        snap = self.engine.snapshot(self.tab, self.merge_pets, self.include_brawler)
+        if not self.party_only or self.capture is None:
+            return snap
+        party = set(self.capture.party())
+        if not party:
+            return snap
+        me = self.capture.detected_name()
+        if me:
+            party.add(me)
+        return keep_only(snap, party)
+
+    def set_party_only(self, enabled: bool) -> None:
+        self.party_only = bool(enabled)
+        self.refresh()
 
     def _apply(self, event: dict) -> None:
         kind = str(event.get("type", "hit")).lower()
@@ -441,6 +456,11 @@ class MainWindow(QWidget):
                 self.live and self.capture.protocol.self_actor is None
             )
             self.roster_page.set_party(self.capture.party())
+            if self.party_only and not self.capture.party():
+                self.roster_page.set_party_note(
+                    "Solo gruppo: lista non ancora ricevuta dal server "
+                    "— apri la finestra gruppo (P) col meter aperto"
+                )
             if not self.capture.protocol.names and not self.capture.party():
                 self.roster_page.set_you_hint(
                     "I nomi dei giocatori arrivano dal server solo al caricamento della zona. "

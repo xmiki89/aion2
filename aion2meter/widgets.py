@@ -348,6 +348,7 @@ class RosterPage(QWidget):
     overlay_toggled = pyqtSignal(bool)
     self_pick = pyqtSignal()
     startup_toggled = pyqtSignal(bool)
+    party_only_changed = pyqtSignal(bool)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -434,6 +435,16 @@ class RosterPage(QWidget):
         self.merge_chip.setCursor(Qt.CursorShape.PointingHandCursor)
         self.merge_chip.toggled.connect(self.merge_changed.emit)
 
+        self.party_chip = QPushButton("Solo gruppo")
+        self.party_chip.setObjectName("chip")
+        self.party_chip.setCheckable(True)
+        self.party_chip.setChecked(True)
+        self.party_chip.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.party_chip.setToolTip(
+            "Mostra solo i membri del gruppo, non i giocatori vicini"
+        )
+        self.party_chip.toggled.connect(self.party_only_changed.emit)
+
         self.overlay_chip = QPushButton("Overlay")
         self.overlay_chip.setObjectName("chip")
         self.overlay_chip.setCheckable(True)
@@ -479,6 +490,7 @@ class RosterPage(QWidget):
         badge_col.addWidget(self.badge)
 
         chip_row.addWidget(self.brawler_chip)
+        chip_row.addWidget(self.party_chip)
         chip_row.addWidget(self.merge_chip)
         chip_row.addWidget(self.overlay_chip)
         chip_row.addWidget(self.you_label)
@@ -583,6 +595,12 @@ class RosterPage(QWidget):
             self.party_label.setVisible(False)
             return
         self.party_label.setText("Gruppo: " + " · ".join(names))
+        self.party_label.setVisible(True)
+
+    def set_party_note(self, text: str) -> None:
+        if not text:
+            return
+        self.party_label.setText(text)
         self.party_label.setVisible(True)
 
     def set_self_pick_visible(self, visible: bool) -> None:

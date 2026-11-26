@@ -386,3 +386,20 @@ class MeterEngine:
             if m.key == key:
                 return m
         return None
+
+
+def keep_only(snap: Snapshot, names: set[str]) -> Snapshot:
+    """Ricalcola il roster tenendo solo i nomi indicati (gruppo + se stessi)."""
+    members = [m for m in snap.members if m.name in names]
+    total = sum(m.metric for m in members)
+    top = members[0].metric if members else 0
+    for rank, member in enumerate(members, start=1):
+        member.rank = rank
+        member.share = (member.metric / total) if total else 0.0
+        member.fill = (member.metric / top) if top else 0.0
+    return Snapshot(
+        duration=snap.duration,
+        total=total,
+        dps=(total / snap.duration) if snap.duration else 0.0,
+        members=members,
+    )

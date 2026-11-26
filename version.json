@@ -1,8 +1,8 @@
 {
-  "version": "1.0.13",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.13",
-  "sha256": "e85d7d380424536b9c6c288a2f1eeee571aa837c7f0a8da84a4355cf66488c01",
-  "size": 36981055,
-  "notes": "Avvio con Windows e riga del gruppo: i nomi arrivano quando il meter e' attivo prima del login",
-  "published": "2026-11-26 20:15"
+  "version": "1.0.14",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.14",
+  "sha256": "6e983506653736c3cdc9955fc8b9911cd8ae2c162bddc0ce9e991eb9143b4d87",
+  "size": 36982896,
+  "notes": "Filtro Solo gruppo: il roster tiene solo i membri del party",
+  "published": "2026-11-26 20:29"
 }
