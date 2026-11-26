@@ -15,6 +15,7 @@ from . import __version__, theme, updater
 from .engine import MeterEngine, Snapshot
 from .hotkey import GlobalHotkey
 from .overlay import OverlayWindow
+from .capture import CaptureFeed, capture_available
 from .feeds import (
     CharacterDetector,
     DemoFeed,
@@ -47,6 +48,7 @@ class MainWindow(QWidget):
         self.detector = CharacterDetector()
         feed_path = find_feed()
         self.feed = LogFeed(feed_path) if feed_path else None
+        self.capture: CaptureFeed | None = None
         self.live = False
         self.tab = "damage"
         self.merge_pets = True
@@ -288,6 +290,16 @@ class MainWindow(QWidget):
     def tick(self) -> None:
         events: list[dict] = []
         became_live = False
+        self._tick_capture()
+        if self.capture is not None:
+            capture_events = self.capture.poll()
+            if capture_events:
+                if not self.live:
+                    self.live = True
+                    became_live = True
+                    self.engine.reset()
+                for event in capture_events:
+                    self._apply(event)
         if self.feed is not None:
             events = self.feed.poll()
             if events and not self.live:
@@ -316,8 +328,24 @@ class MainWindow(QWidget):
 
         self.refresh()
 
+    def _tick_capture(self) -> None:
+        """Avvia la cattura quando il gioco gira, la ferma quando si chiude."""
+        if self.demo_enabled or not capture_available():
+            return
+        if self.watcher.running:
+            if self.capture is None:
+                self.capture = CaptureFeed()
+                self.capture.start()
+            if self.detector.character:
+                self.capture.set_self_hint(self.detector.character)
+        elif self.capture is not None and not self.capture.running:
+            self.capture.stop()
+            self.capture = None
+
     # ----------------------------------------------------------------- display
     def feed_hint(self) -> str:
+        if self.capture is not None and self.capture.running:
+            return f"Cattura pacchetti attiva · {self.capture.packets:,} pacchetti"
         if self.feed is not None:
             return f"Log di combattimento: {self.feed.path}"
         candidates = candidate_feed_paths()
@@ -340,6 +368,17 @@ class MainWindow(QWidget):
         from_feed = {k: v for k, v in self.engine.session.items() if v}
         info = self.detector.update(self.watcher, {**from_file, **from_feed})
 
+        # la cattura conosce il personaggio e la classe meglio dei file locali
+        if self.capture is not None:
+            detected_class = self.capture.detected_class()
+            detected_name = self.capture.detected_name()
+            if detected_class:
+                info["class"] = detected_class
+                self.engine.set_session(cls=detected_class)
+            if detected_name:
+                info["character"] = detected_name
+                self.engine.set_session(character=detected_name)
+
         character = info.get("character")
         char_class = info.get("class")
         server = info.get("server")
@@ -355,6 +394,11 @@ class MainWindow(QWidget):
 
         if self.watcher.running:
             parts = [f"Aion 2 rilevato · {self.watcher.exe} (PID {self.watcher.pid})"]
+            if self.capture is not None:
+                if self.capture.packets:
+                    parts.append(f"cattura {self.capture.packets:,} pacchetti")
+                elif self.capture.error:
+                    parts.append(self.capture.error)
             parts.append(f"v{__version__}")
             if server:
                 parts.append(f"server {server}")
@@ -367,6 +411,9 @@ class MainWindow(QWidget):
             )
 
     def closeEvent(self, event) -> None:  # noqa: N802, ANN001
+        if self.capture is not None:
+            self.capture.stop()
+            self.capture = None
         self.overlay.save_settings()
         self.hotkey.unregister()
         super().closeEvent(event)
