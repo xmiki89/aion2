@@ -840,6 +840,7 @@ class CaptureFeed:
         self._renames: list[tuple[str, str]] = []
         self.known_name: str | None = None
         self._assigned: dict[int, str] = {}
+        self._panel_hits: dict[str, int] = {}
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.Lock()
@@ -919,9 +920,24 @@ class CaptureFeed:
                 self._renames.append((old, name))
             self._labels[actor] = name
 
+    def add_panel_names(self, names: list[str]) -> None:
+        """Nomi letti dal pannello di gioco: validi se compaiono in due letture."""
+        for name in names:
+            self._panel_hits[name] = self._panel_hits.get(name, 0) + 1
+        for name in list(self._panel_hits):
+            if name not in names:
+                self._panel_hits.pop(name, None)
+
+    def panel_names(self) -> list[str]:
+        return sorted(name for name, hits in self._panel_hits.items() if hits >= 2)
+
     def party(self) -> list[str]:
-        """Nomi del party: elenco giocatori (1e) + nomi consecutivi, dal server."""
-        names = set(self.protocol.seen_players) | set(self.protocol.party_names)
+        """Nomi del party: pannello di gioco + elenco dal server."""
+        names = (
+            set(self.protocol.seen_players)
+            | set(self.protocol.party_names)
+            | set(self.panel_names())
+        )
         return sorted(name for name in names if name)
 
     def players(self) -> list[str]:

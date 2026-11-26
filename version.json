@@ -1,8 +1,8 @@
 {
-  "version": "1.0.19",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.19",
-  "sha256": "77ff890f6b5f2f852069e64ad93c9f8bda768e1a320f1549ec047e6a806e5df9",
-  "size": 36985333,
-  "notes": "Controllo periodico del party: nomi riassegnati alle righe in ordine di slot",
-  "published": "2026-11-26 21:26"
+  "version": "1.0.20",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.20",
+  "sha256": "e9a2c30aaeb85f65b2c19f72372541a653d48ed74b90d42f6de43bd8f38c0907",
+  "size": 36990719,
+  "notes": "Lettura periodica dei nomi del party dal pannello di gioco",
+  "published": "2026-11-26 21:34"
 }

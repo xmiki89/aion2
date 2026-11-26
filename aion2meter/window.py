@@ -16,6 +16,7 @@ from .engine import MeterEngine, Snapshot, keep_only, with_party_rows
 from .hotkey import GlobalHotkey
 from .overlay import OverlayWindow
 from .capture import CaptureFeed, capture_available
+from .screen import scan_names, temp_png
 from .startup import is_enabled as is_startup_enabled
 from .startup import set_enabled as set_startup_enabled
 from .feeds import (
@@ -68,6 +69,9 @@ class MainWindow(QWidget):
         self._overlay_dismissed = False
         self._saved_self = False
         self.party_only = True
+        self._panel_busy = False
+        self._panel_ticks = 0
+        self._screen = QApplication.primaryScreen()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 14)
@@ -347,6 +351,9 @@ class MainWindow(QWidget):
         self._poll_updates()
 
         self._scan_ticks += 1
+        self._panel_ticks += 1
+        if self.watcher.running and self._panel_ticks % 24 == 0:
+            self.scan_party_panel()
         if became_live or self._scan_ticks % 8 == 0:
             self.watcher.scan()
             self.auto_show_overlay()
@@ -496,6 +503,33 @@ class MainWindow(QWidget):
             self.roster_page.set_status(
                 "Aion 2 non rilevato — in attesa dell'avvio del gioco", self.live
             )
+
+    def scan_party_panel(self) -> None:
+        """Ogni pochi secondi legge i nomi del party dal pannello di gioco."""
+        if self._panel_busy or self.capture is None or self._screen is None:
+            return
+        path = temp_png()
+        shot = self._screen.grabWindow(0)
+        if shot.isNull() or not shot.save(str(path), "PNG"):
+            return
+        self._panel_busy = True
+
+        def work() -> None:
+            try:
+                names = scan_names(path)
+            except Exception:
+                names = []
+            QTimer.singleShot(0, lambda: self._panel_result(names))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _panel_result(self, names: list[str]) -> None:
+        self._panel_busy = False
+        if self.capture is None:
+            return
+        self.capture.add_panel_names(names)
+        self.refresh()
+        self.update_status()
 
     def set_startup(self, enabled: bool) -> None:
         """Avvio con Windows: la cattura parte prima del login e vede i nomi."""
