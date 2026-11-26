@@ -12,7 +12,7 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QStackedWidget, QVBoxLayout, QWidget
 
 from . import __version__, theme, updater
-from .engine import MeterEngine, Snapshot, keep_only
+from .engine import MeterEngine, Snapshot, keep_only, with_party_rows
 from .hotkey import GlobalHotkey
 from .overlay import OverlayWindow
 from .capture import CaptureFeed, capture_available
@@ -248,18 +248,22 @@ class MainWindow(QWidget):
     # ------------------------------------------------------------------- feeds
     def snapshot(self) -> Snapshot:
         snap = self.engine.snapshot(self.tab, self.merge_pets, self.include_brawler)
-        if not self.party_only or self.capture is None:
+        if self.capture is None:
             return snap
-        party = set(self.capture.party())
+        party_names = self.capture.party()
+        if party_names:
+            snap = with_party_rows(snap, party_names)
+        if not self.party_only:
+            return snap
+        party = set(party_names)
         if not party:
             return snap
         me = self.capture.detected_name()
         if me:
             party.add(me)
-        if not any(member.name in party for member in snap.members):
-            # nessuna riga ha ancora il nome: mostro tutto invece di un roster vuoto
-            return snap
-        return keep_only(snap, party)
+        # resta visibile anche chi ha danni ma non ha ancora il nome (compagno non mappato)
+        keep = party | {member.name for member in snap.members if member.name.startswith("Player ")}
+        return keep_only(snap, keep)
 
     def set_party_only(self, enabled: bool) -> None:
         self.party_only = bool(enabled)

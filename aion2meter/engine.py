@@ -388,6 +388,39 @@ class MeterEngine:
         return None
 
 
+def with_party_rows(snap: Snapshot, names: list[str]) -> Snapshot:
+    """Aggiunge al roster i nomi del party che non hanno ancora danni."""
+    if not names:
+        return snap
+    existing = {member.name for member in snap.members}
+    extra: list[MemberStat] = []
+    for name in names:
+        if not name or name in existing:
+            continue
+        cdata = class_info(normalize_class("Unknown"))
+        extra.append(
+            MemberStat(
+                key=name,
+                name=name,
+                cls="Unknown",
+                role=cdata["role"],
+                spec=cdata["spec"],
+                color=cdata["color"],
+            )
+        )
+    if not extra:
+        return snap
+    members = snap.members + extra
+    for rank, member in enumerate(members, start=1):
+        member.rank = rank
+    return Snapshot(
+        duration=snap.duration,
+        total=snap.total,
+        dps=snap.dps,
+        members=members,
+    )
+
+
 def keep_only(snap: Snapshot, names: set[str]) -> Snapshot:
     """Ricalcola il roster tenendo solo i nomi indicati (gruppo + se stessi)."""
     members = [m for m in snap.members if m.name in names]
