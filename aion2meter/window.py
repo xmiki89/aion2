@@ -455,8 +455,14 @@ class MainWindow(QWidget):
             self.roster_page.set_self_pick_visible(
                 self.live and self.capture.protocol.self_actor is None
             )
-            self.roster_page.set_party(self.capture.party())
-            if self.party_only and not self.capture.party():
+            party = self.capture.party()
+            if party:
+                self.roster_page.set_party(party)
+            elif self.capture.players():
+                self.roster_page.set_party_note(
+                    "In zona: " + " · ".join(self.capture.players())
+                )
+            elif self.party_only:
                 self.roster_page.set_party_note(
                     "Solo gruppo: lista non ancora ricevuta dal server "
                     "— apri la finestra gruppo (P) col meter aperto"

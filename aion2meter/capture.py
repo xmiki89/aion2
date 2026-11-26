@@ -465,6 +465,7 @@ class Protocol:
         self.self_name: str | None = None
         self.self_server: int | None = None
         self.party_names: set[str] = set()
+        self.seen_players: dict[str, int] = {}
 
     # ------------------------------------------------------------- nomi
     def display(self, actor: int) -> str:
@@ -547,6 +548,22 @@ class Protocol:
                 self.self_name = raw.decode()
                 self.self_class = _CLASS_BY_ROSTER_CLASS.get(code)
                 self.self_server = server
+
+        # elenco giocatori: 1e <slot> <uid u32> <campo u16> <len> <nome>
+        for index in range(len(payload) - 12):
+            if payload[index] != 0x1E:
+                continue
+            slot = payload[index + 1]
+            if slot > 15:
+                continue
+            uid = struct.unpack("<I", payload[index + 2 : index + 6])[0]
+            if not 1000 <= uid <= 999_999_999:
+                continue
+            length = payload[index + 10]
+            raw = payload[index + 11 : index + 11 + length]
+            if not _looks_like_name(raw):
+                continue
+            self.seen_players[raw.decode()] = uid
 
         # lista del gruppo nel dungeon: due o piu' nomi consecutivi <len><nome>
         index = 0
@@ -855,6 +872,11 @@ class CaptureFeed:
     def party(self) -> list[str]:
         """Nomi del gruppo cosi' come arrivano dal server."""
         return sorted(name for name in self.protocol.party_names if name)
+
+    def players(self) -> list[str]:
+        """Giocatori elencati dal server (party/lista zona), con nome."""
+        names = set(self.protocol.seen_players) | set(self.protocol.party_names)
+        return sorted(name for name in names if name)
 
     def take_renames(self) -> list[tuple[str, str]]:
         renames = self._renames

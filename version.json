@@ -1,8 +1,8 @@
 {
-  "version": "1.0.14",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.14",
-  "sha256": "6e983506653736c3cdc9955fc8b9911cd8ae2c162bddc0ce9e991eb9143b4d87",
-  "size": 36982896,
-  "notes": "Filtro Solo gruppo: il roster tiene solo i membri del party",
-  "published": "2026-11-26 20:29"
+  "version": "1.0.15",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.15",
+  "sha256": "762dc9f58a21b6ba961cf45df22b0c40dca38d3482cf2618393494b0c8926800",
+  "size": 36983779,
+  "notes": "Rileva l'elenco giocatori del server e mostra nomi in zona o gruppo",
+  "published": "2026-11-26 20:40"
 }
