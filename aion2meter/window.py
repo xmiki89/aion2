@@ -5,12 +5,13 @@ from __future__ import annotations
 import sys
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QStackedWidget, QVBoxLayout, QWidget
 
-from . import theme, updater
+from . import __version__, theme, updater
 from .engine import MeterEngine, Snapshot
 from .hotkey import GlobalHotkey
 from .overlay import OverlayWindow
@@ -24,6 +25,11 @@ from .feeds import (
     read_session_file,
 )
 from .widgets import DetailPage, RosterPage
+
+# ogni quanto ricontrollare GitHub, e ogni quanto riprovare dopo un errore
+UPDATE_CHECK_INTERVAL = 30 * 60
+UPDATE_RETRY_INTERVAL = 90
+UPDATE_FAIL_RETRY = 5 * 60
 
 
 class MainWindow(QWidget):
@@ -49,6 +55,8 @@ class MainWindow(QWidget):
         self._scan_ticks = 0
         self._update_info: updater.UpdateInfo | None = None
         self._update_shown = False
+        self._update_busy = False
+        self._next_update_check = time.monotonic() + 2.5
         self._download_busy = False
         self._download_percent = -1
         self._download_result: tuple[Path, bool] | None = None
@@ -92,12 +100,13 @@ class MainWindow(QWidget):
 
         self.refresh()
         self.update_status()
-        QTimer.singleShot(2500, self.check_updates)
 
     # ----------------------------------------------------------- aggiornamenti
     def check_updates(self) -> None:
-        if self._update_info is not None:
+        """Chiede a GitHub se esiste una versione nuova (una richiesta alla volta)."""
+        if self._update_busy:
             return
+        self._update_busy = True
 
         def work() -> None:
             try:
@@ -105,6 +114,13 @@ class MainWindow(QWidget):
             except Exception:
                 info = None
             self._update_info = info
+            self._update_busy = False
+            if info is not None:
+                self._update_shown = False
+                self._next_update_check = time.monotonic() + UPDATE_CHECK_INTERVAL
+            else:
+                # rete o GitHub non raggiungibili: riprova tra poco
+                self._next_update_check = time.monotonic() + UPDATE_RETRY_INTERVAL
 
         threading.Thread(target=work, name="update-check", daemon=True).start()
 
@@ -131,6 +147,12 @@ class MainWindow(QWidget):
             self._download_percent = min(99, int(done * 100 / total))
 
     def _poll_updates(self) -> None:
+        if (
+            self._update_info is None
+            and not self._update_busy
+            and time.monotonic() >= self._next_update_check
+        ):
+            self.check_updates()
         if self._update_info is not None and not self._update_shown:
             self._update_shown = True
             self.roster_page.set_update(self._update_info.version)
@@ -145,8 +167,13 @@ class MainWindow(QWidget):
                 self.roster_page.set_update_text("Riavvio…")
                 QTimer.singleShot(400, QApplication.quit)
             else:
+                # download o sostituzione fallita: riprova da solo più tardi
                 self._download_busy = False
-                self.roster_page.set_update_text("Riprova aggiornamento")
+                self._download_percent = -1
+                self._update_info = None
+                self._update_shown = False
+                self._next_update_check = time.monotonic() + UPDATE_FAIL_RETRY
+                self.roster_page.set_update_text("Riprovo tra poco…")
 
     # ------------------------------------------------------------------ overlay
     def _on_overlay_hidden(self) -> None:
@@ -328,6 +355,7 @@ class MainWindow(QWidget):
 
         if self.watcher.running:
             parts = [f"Aion 2 rilevato · {self.watcher.exe} (PID {self.watcher.pid})"]
+            parts.append(f"v{__version__}")
             if server:
                 parts.append(f"server {server}")
             if character:
