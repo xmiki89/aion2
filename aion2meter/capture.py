@@ -933,11 +933,11 @@ class CaptureFeed:
 
     def party(self) -> list[str]:
         """Nomi del party: pannello di gioco + elenco dal server."""
-        names = (
-            set(self.protocol.seen_players)
-            | set(self.protocol.party_names)
-            | set(self.panel_names())
-        )
+        panel = self.panel_names()
+        if panel:
+            # il pannello di gioco e' l'unica fonte: solo i membri del party
+            return panel
+        names = set(self.protocol.seen_players) | set(self.protocol.party_names)
         return sorted(name for name in names if name)
 
     def players(self) -> list[str]:

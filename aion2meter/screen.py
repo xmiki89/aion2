@@ -113,20 +113,31 @@ def ocr_lines(png_path: Path) -> list[str]:
     return [line.strip() for line in text.splitlines() if line.strip()]
 
 
+# righe del pannello party: `..II nome`, ` ..11 Nome (Gilda`, `Nome (Gilda`
+_ROW_PREFIX = re.compile(
+    r"^[.\s\u2022\u00b7\u2007|Il]*(?:[IVXl]{1,3}|\d{1,2})\s+(?P<name>\S+)"
+)
+_ROW_GUILD = re.compile(
+    r"^(?P<name>[A-Za-z\u00c0-\u024f][\w\-]{2,15})\s*\(\s*[A-Za-z\u00c0-\u024f]"
+)
+
+
 def names_from_lines(lines: list[str]) -> list[str]:
-    """Nomi dalle righe del pannello party: `..II xmiki`, `Vexanna (Gilda`."""
+    """Solo i nomi del pannello party, ignorando chat, missioni e nametag."""
     names: list[str] = []
     for line in lines:
         text = line.strip()
-        if not text or "player" in text.lower():
+        if not text or text.startswith("[") or "player" in text.lower():
             continue
-        head = text.split("(")[0]
-        tokens = [t for t in re.split(r"[^\w\-]+", head) if t]
-        tokens = [t for t in tokens if not re.fullmatch(r"[IVXl]{1,3}", t)]
-        if not tokens:
+        row = _ROW_PREFIX.match(text) or _ROW_GUILD.match(text)
+        if row is None:
             continue
-        token = tokens[-1]
-        if _token_ok(token) and len(token) >= 4 and token not in names:
+        token = row.group("name").strip("[],.;:")
+        if token.isupper() and len(token) >= 3:
+            continue
+        if token.lower() in _STOP or token.lower().startswith("player"):
+            continue
+        if _token_ok(token) and token not in names:
             names.append(token)
     return names
 
