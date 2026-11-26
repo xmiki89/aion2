@@ -18,6 +18,7 @@ INIT = ROOT / "aion2meter" / "__init__.py"
 PAYLOAD = ROOT / "update" / "Aion2DamageMeter.exe"
 MANIFEST = ROOT / "version.json"
 APP_EXE = ROOT / "dist" / "Aion2DamageMeter.exe"
+SETUP_EXE = ROOT / "dist" / "Aion2DamageMeter-Setup.exe"
 
 
 def git_run(*args: str) -> subprocess.CompletedProcess:
@@ -72,6 +73,18 @@ def publish(version: str, notes: str) -> None:
     print(f"Payload aggiornato: {PAYLOAD} ({PAYLOAD.stat().st_size / 1_048_576:.1f} MB)")
 
 
+def publish_release(version: str, notes: str) -> None:
+    """Allega il Setup alla release GitHub (non blocca il push se fallisce)."""
+    try:
+        import release  # modulo accanto a sync.py
+
+        release.publish(version, notes, [SETUP_EXE])
+    except SystemExit as exc:
+        print(f"Release GitHub non pubblicata: {exc}")
+    except Exception as exc:  # pragma: no cover - rete/credenziali
+        print(f"Release GitHub non pubblicata: {exc}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Pubblica una modifica su GitHub")
     parser.add_argument("-m", "--message", default="", help="descrizione della modifica")
@@ -107,6 +120,7 @@ def main() -> int:
         print((push.stderr or push.stdout).strip())
         return 1
     print(f"Pubblicato: {RAW_BASE}/version.json (v{version})")
+    publish_release(version, message)
     return 0
 
 
