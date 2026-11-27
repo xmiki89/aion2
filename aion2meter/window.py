@@ -37,6 +37,10 @@ UPDATE_CHECK_INTERVAL = 30 * 60
 UPDATE_RETRY_INTERVAL = 90
 UPDATE_FAIL_RETRY = 5 * 60
 
+# quanto a lungo il pannello del gruppo puo' non essere letto (OCR che perde un
+# colpo, finestra coperta un attimo) prima di considerare finito il gruppo
+PARTY_GRACE = 45.0
+
 
 class MainWindow(QWidget):
     def __init__(self, demo: bool = False) -> None:
@@ -72,6 +76,9 @@ class MainWindow(QWidget):
         self.party_only = True
         self._panel_busy = False
         self._panel_ticks = 0
+        # il meter conta solo in gruppo: parte quando il pannello da' i nomi
+        self._party_active = demo
+        self._party_seen = 0.0
         self._screen = QApplication.primaryScreen()
 
         layout = QVBoxLayout(self)
@@ -250,8 +257,28 @@ class MainWindow(QWidget):
         self.detail_page.set_member(member)
         self.stack.setCurrentIndex(1)
 
+    # ------------------------------------------------------------------- party
+    def meter_active(self) -> bool:
+        """True solo dentro un gruppo (l'OCR del pannello ha letto i nomi)."""
+        return self.demo_enabled or self._party_active
+
+    def _set_party_active(self, active: bool) -> None:
+        """Accende/spegne il meter: ogni gruppo riparte da zero."""
+        if active == self._party_active:
+            return
+        self._party_active = active
+        self.live = active
+        self.engine.reset()
+        if not active:
+            self._detail_key = None
+            self.roster_page.set_selected(None)
+            self.show_roster()
+
     # ------------------------------------------------------------------- feeds
     def snapshot(self) -> Snapshot:
+        if not self.meter_active():
+            # fuori dal gruppo il meter non conta e non mostra nulla
+            return Snapshot()
         snap = self.engine.snapshot(self.tab, self.merge_pets, self.include_brawler)
         if self.capture is None:
             return snap
@@ -328,15 +355,26 @@ class MainWindow(QWidget):
         events: list[dict] = []
         became_live = False
         self._tick_capture()
+        if (
+            self._party_active
+            and not self.demo_enabled
+            and time.monotonic() - self._party_seen > PARTY_GRACE
+        ):
+            # il pannello non mostra piu' il gruppo da un pezzo: si spegne
+            self._set_party_active(False)
         if self.capture is not None:
             capture_events = self.capture.poll()
             if capture_events:
-                if not self.live:
-                    self.live = True
-                    became_live = True
-                    self.engine.reset()
-                for event in capture_events:
-                    self._apply(event)
+                # i danni contano solo se il gruppo e' stato letto dal pannello
+                if not self.meter_active():
+                    capture_events = []
+                else:
+                    if not self.live:
+                        self.live = True
+                        became_live = True
+                        self.engine.reset()
+                    for event in capture_events:
+                        self._apply(event)
             for old, new in self.capture.take_renames():
                 self.engine.rename(old, new)
         if self.feed is not None:
@@ -356,7 +394,8 @@ class MainWindow(QWidget):
 
         self._scan_ticks += 1
         self._panel_ticks += 1
-        if self.watcher.running and self._panel_ticks % 24 == 0:
+        # il pannello del gruppo si rilegge spesso (~3 s): i nomi restano allineati
+        if self.watcher.running and self._panel_ticks % 12 == 0:
             self.scan_party_panel()
         if became_live or self._scan_ticks % 8 == 0:
             self.watcher.scan()
@@ -415,6 +454,7 @@ class MainWindow(QWidget):
         elif self.capture is not None and not self.capture.running:
             self.capture.stop()
             self.capture = None
+            self._set_party_active(False)
 
     # ----------------------------------------------------------------- display
     def feed_hint(self) -> str:
@@ -476,10 +516,18 @@ class MainWindow(QWidget):
             party = self.capture.party()
             if party:
                 self.roster_page.set_party(party)
-            elif self.party_only:
-                self.roster_page.set_party_note(
-                    "Solo gruppo: lista non ancora ricevuta dal server "
-                    "— apri la finestra gruppo (P) col meter aperto"
+                self.roster_page.set_empty(
+                    "In attesa dei danni",
+                    "Gruppo letto dal pannello: appena combattete compaiono i danni "
+                    "di tutti i membri.",
+                )
+            else:
+                self.roster_page.set_party("")
+                self.roster_page.set_empty(
+                    "In attesa del gruppo",
+                    "Il meter parte solo in gruppo: apri il pannello dei membri (P) e "
+                    "lascialo visibile a sinistra. Legge i nomi da solo e conta i danni "
+                    "di tutto il party.",
                 )
             if not self.capture.protocol.names and not self.capture.party():
                 self.roster_page.set_you_hint(
@@ -543,6 +591,9 @@ class MainWindow(QWidget):
         if self.capture is None:
             return
         self.capture.add_panel_names(names)
+        if self.capture.party():
+            self._party_seen = time.monotonic()
+            self._set_party_active(True)
         self.refresh()
         self.update_status()
 

@@ -630,6 +630,13 @@ class RosterPage(QWidget):
     def set_feed_hint(self, text: str) -> None:
         self.empty_hint.setText(text)
 
+    def set_empty(self, title: str, sub: str) -> None:
+        """Titolo e testo dell'elenco vuoto (es. in attesa del gruppo)."""
+        if self.empty_title.text() != title:
+            self.empty_title.setText(title)
+        if self.empty_sub.text() != sub:
+            self.empty_sub.setText(sub)
+
     def set_snapshot(self, snap: Snapshot) -> None:
         self.total_value.setText(fmt(snap.total))
         self.dps_value.setText(
