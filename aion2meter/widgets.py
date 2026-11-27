@@ -342,7 +342,6 @@ class SkillTable(QWidget):
 class RosterPage(QWidget):
     player_clicked = pyqtSignal(str)
     tab_selected = pyqtSignal(str)
-    merge_changed = pyqtSignal(bool)
     brawler_changed = pyqtSignal(bool)
     update_clicked = pyqtSignal()
     overlay_toggled = pyqtSignal(bool)
@@ -428,13 +427,6 @@ class RosterPage(QWidget):
         self.brawler_chip.setCursor(Qt.CursorShape.PointingHandCursor)
         self.brawler_chip.toggled.connect(self.brawler_changed.emit)
 
-        self.merge_chip = QPushButton("Merge Pet Damage")
-        self.merge_chip.setObjectName("chip")
-        self.merge_chip.setCheckable(True)
-        self.merge_chip.setChecked(True)
-        self.merge_chip.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.merge_chip.toggled.connect(self.merge_changed.emit)
-
         self.party_chip = QPushButton("Solo gruppo")
         self.party_chip.setObjectName("chip")
         self.party_chip.setCheckable(True)
@@ -491,7 +483,6 @@ class RosterPage(QWidget):
 
         chip_row.addWidget(self.brawler_chip)
         chip_row.addWidget(self.party_chip)
-        chip_row.addWidget(self.merge_chip)
         chip_row.addWidget(self.overlay_chip)
         chip_row.addWidget(self.you_label)
         chip_row.addWidget(self.self_button)

@@ -256,7 +256,6 @@ class MeterEngine:
     def snapshot(
         self,
         tab: str = "damage",
-        merge_pets: bool = True,
         include_brawler: bool = True,
     ) -> Snapshot:
         tab = tab if tab in TAB_FIELD else "damage"
@@ -290,20 +289,10 @@ class MeterEngine:
 
         for name, bucket in self.buckets.items():
             meta = self.members.get(name, {})
-            is_pet = bool(meta.get("pet"))
-            owner = meta.get("owner")
-            if is_pet and merge_pets and owner:
-                key = owner
-                owner_meta = self.members.get(owner, {})
-                info = groups.setdefault(
-                    key,
-                    blank(owner, owner_meta.get("cls") or meta.get("cls"), owner_meta.get("role")),
-                )
-                if info["cls"] in (None, "Unknown"):
-                    info["cls"] = owner_meta.get("cls") or meta.get("cls") or "Unknown"
-            else:
-                key = name
-                info = groups.setdefault(key, blank(name, meta.get("cls"), meta.get("role")))
+            if meta.get("pet"):
+                # niente danno dei pet: ne' unito al padrone ne' come riga a parte
+                continue
+            info = groups.setdefault(name, blank(name, meta.get("cls"), meta.get("role")))
 
             info["damage"] += bucket.damage
             info["healing"] += bucket.healing
@@ -381,8 +370,8 @@ class MeterEngine:
             members=members,
         )
 
-    def member(self, key: str, tab: str, merge_pets: bool, include_brawler: bool) -> MemberStat | None:
-        for m in self.snapshot(tab, merge_pets, include_brawler).members:
+    def member(self, key: str, tab: str, include_brawler: bool) -> MemberStat | None:
+        for m in self.snapshot(tab, include_brawler).members:
             if m.key == key:
                 return m
         return None

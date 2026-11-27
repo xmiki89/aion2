@@ -1,8 +1,8 @@
 {
-  "version": "1.0.25",
-  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.25",
-  "sha256": "6bca1b3a76e24646664f46c0a8e97972d884b059b74d1815f38c66c2396be9ef",
-  "size": 36990633,
-  "notes": "Il meter parte solo in gruppo: legge i nomi dal pannello e conta i danni di tutto il party",
-  "published": "2026-11-27 13:42"
+  "version": "1.0.26",
+  "url": "https://raw.githubusercontent.com/xmiki89/aion2/main/update/Aion2DamageMeter.exe?v=1.0.26",
+  "sha256": "28f3357970905a4a002604bc0f8a62beb45bb78486128223c7b18ceaff678bf0",
+  "size": 36991673,
+  "notes": "Niente danno dei pet: rimosso il merge e il chip Merge Pet Damage",
+  "published": "2026-11-27 13:46"
 }

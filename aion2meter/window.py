@@ -60,7 +60,6 @@ class MainWindow(QWidget):
         self.capture: CaptureFeed | None = None
         self.live = False
         self.tab = "damage"
-        self.merge_pets = True
         self.include_brawler = False
         self._detail_key: str | None = None
         self._scan_ticks = 0
@@ -94,7 +93,6 @@ class MainWindow(QWidget):
 
         self.roster_page.player_clicked.connect(self.open_detail)
         self.roster_page.tab_selected.connect(self.set_tab)
-        self.roster_page.merge_changed.connect(self.set_merge_pets)
         self.roster_page.brawler_changed.connect(self.set_include_brawler)
         self.detail_page.back_requested.connect(self.show_roster)
         self.roster_page.update_clicked.connect(self.install_update)
@@ -234,10 +232,6 @@ class MainWindow(QWidget):
         self.tab = key
         self.refresh()
 
-    def set_merge_pets(self, value: bool) -> None:
-        self.merge_pets = value
-        self.refresh()
-
     def set_include_brawler(self, value: bool) -> None:
         self.include_brawler = value
         self.refresh()
@@ -279,7 +273,7 @@ class MainWindow(QWidget):
         if not self.meter_active():
             # fuori dal gruppo il meter non conta e non mostra nulla
             return Snapshot()
-        snap = self.engine.snapshot(self.tab, self.merge_pets, self.include_brawler)
+        snap = self.engine.snapshot(self.tab, self.include_brawler)
         if self.capture is None:
             return snap
         party_names = self.capture.party()

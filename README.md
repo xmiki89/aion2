@@ -1,7 +1,7 @@
 # Aion 2 Damage Meter
 
 Damage meter desktop per Aion 2 (Windows), con la grafica delle foto: classifica del party,
-dettaglio per giocatore, tab per danno/cura/danno subito, filtro pet e Brawler (KR/TW), e overlay
+dettaglio per giocatore, tab per danno/cura/danno subito, filtro Brawler (KR/TW), e overlay
 trasparente sopra il gioco.
 
 ## Installazione (per chi riceve il file)
@@ -96,8 +96,8 @@ Formato righe:
 
 - `position`: `back`, `front`, `flank` (usato per Back %).
 - `crit` / `double` / `multi`: flag dei colpi.
-- `pet: true` + `owner`: il danno del pet viene unito al padrone quando "Merge Pet Damage" è attivo,
-  altrimenti compare come riga separata.
+- `pet: true` + `owner`: il danno dei pet/evocazioni viene ignorato dal meter (non entra
+  né nel totale né nelle righe).
 - `t`: secondi dall'inizio del combattimento. Se manca, il meter prosegue con il proprio clock.
 
 Sessione (server, personaggio, classe) alternativa, senza log:
